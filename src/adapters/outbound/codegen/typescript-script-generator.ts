@@ -103,6 +103,7 @@ interface GrafanaFolder {
 }
 
 interface AlertRuleConfig {
+  uid: string; // Unique ID to prevent overwrites across data sources
   title: string;
   ruleGroup: string;
   folderUid: string;
@@ -273,6 +274,7 @@ class GrafanaClient {
       interval: '1m',
       rules: alerts.map(config => ({
         grafana_alert: {
+          uid: config.uid, // Unique ID prevents overwrites across data sources
           title: config.title,
           condition: config.condition,
           data: config.data,
@@ -536,8 +538,13 @@ ${definitions.join(',\n')}
 
   private generateAlertDefinition(alert: AlertRule): string {
     const queryData = this.generateQueryData(alert);
+    // Generate deterministic UID: title-slug + datasource-uid-short
+    // This ensures same inputs = same UID (updates not duplicates)
+    // Different data sources = different UIDs (no overwrites)
+    const uid = this.generateAlertUid(alert);
 
     return `  {
+    uid: ${JSON.stringify(uid)},
     title: ${JSON.stringify(alert.title)},
     ruleGroup: ${JSON.stringify(alert.ruleGroup)},
     condition: 'C',
@@ -646,6 +653,31 @@ ${definitions.join(',\n')}
       neq: 'neq',
     };
     return map[operator] ?? 'gt';
+  }
+
+  /**
+   * Generate a deterministic, unique UID for an alert rule.
+   *
+   * Format: {title-slug}-{datasource-uid-short}
+   *
+   * This ensures:
+   * - Same alert + same data source = same UID (updates, not duplicates)
+   * - Same alert + different data source = different UID (no overwrites)
+   * - Grafana UID limit: 40 characters
+   */
+  private generateAlertUid(alert: AlertRule): string {
+    // Create a slug from title: lowercase, replace non-alphanumeric with dash
+    const titleSlug = alert.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') // trim leading/trailing dashes
+      .substring(0, 28); // Leave room for separator and datasource uid
+
+    // Use first 8 chars of datasource UID for uniqueness
+    const dsUidShort = alert.dataSource.uid.substring(0, 8);
+
+    // Combine: title-slug-dsuid (max 40 chars)
+    return `${titleSlug}-${dsUidShort}`;
   }
 }
 

@@ -130,6 +130,8 @@ All templates follow: `{SERVICE}-Alerts-{AlertType}`
 - `ALB-Alerts-Unhealthy-Hosts`
 
 ## Recent Changes
+- **Unique alert UIDs per data source**: Generated alerts now include deterministic UIDs (`{title-slug}-{datasource-uid}`) to prevent overwrites when deploying alerts for multiple AWS accounts/data sources to the same Grafana instance
+- **Workflow logging**: Discovery and validation steps now log full resource details to `logs/` for audit and debugging
 - **Load balancer target health checking**: Discovery checks target health via DescribeTargetHealth API
 - **No-targets exclusion**: LBs with 0 registered targets are excluded (monitoring is meaningless)
 - **Baseline unhealthy warnings**: LBs with all unhealthy targets are INCLUDED with warning (real alerts should fire)

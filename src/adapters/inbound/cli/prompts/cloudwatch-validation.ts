@@ -17,6 +17,7 @@ import {
 import * as fs from 'fs/promises';
 import { join } from 'path';
 import { loadConfig } from '../../../../config/index.js';
+import { getWorkflowLogger } from '../workflow-logger.js';
 
 export interface CloudWatchValidationResult {
   validatedResources: DiscoveredResources;
@@ -155,6 +156,72 @@ export async function runCloudWatchValidation(
 
   // Summarize results
   const summary = summarizeValidation(validationResults);
+
+  // Log full validation details for audit/debugging
+  const logger = getWorkflowLogger();
+  logger.log('02-cloudwatch-validation', {
+    dataSource: {
+      uid: dataSource.uid,
+      name: dataSource.name,
+    },
+    summary: {
+      totalDiscovered: summary.totalDiscovered,
+      totalMatched: summary.totalMatched,
+      totalUnmatched: summary.totalUnmatched,
+      hasIssues: summary.hasIssues,
+      hasCriticalIssues: summary.hasCriticalIssues,
+      warningCount: summary.warnings?.length ?? 0,
+    },
+    resultsByServiceRegion: summary.results.map(result => ({
+      service: result.service,
+      region: result.region,
+      status: result.status,
+      discoveredCount: result.discoveredCount,
+      matchedCount: result.matchedResources.length,
+      unmatchedCount: result.unmatchedResources.length,
+      namespaceAccessible: result.namespaceAccessible,
+      matchedResources: result.matchedResources.map(r => ({
+        id: r.id,
+        name: r.name,
+        region: r.region,
+        state: (r as any).state ?? null,
+        targetHealth: (r as any).targetHealth ? {
+          registeredTargetCount: (r as any).targetHealth.registeredTargetCount,
+          healthyTargetCount: (r as any).targetHealth.healthyTargetCount,
+          unhealthyTargetCount: (r as any).targetHealth.unhealthyTargetCount,
+        } : null,
+      })),
+      unmatchedResources: result.unmatchedResources.map(r => ({
+        id: r.id,
+        name: r.name,
+        region: r.region,
+        state: (r as any).state ?? null,
+        targetHealth: (r as any).targetHealth ? {
+          registeredTargetCount: (r as any).targetHealth.registeredTargetCount,
+          healthyTargetCount: (r as any).targetHealth.healthyTargetCount,
+          unhealthyTargetCount: (r as any).targetHealth.unhealthyTargetCount,
+        } : null,
+      })),
+      diagnostics: result.diagnostics?.map(d => ({
+        resourceId: d.resource.id,
+        resourceName: d.resource.name,
+        rootCause: d.rootCause,
+        recommendation: d.recommendation,
+      })) ?? [],
+    })),
+    warnings: summary.warnings?.map(w => ({
+      loadBalancerName: w.resource.name,
+      loadBalancerType: w.resource.service,
+      region: w.resource.region,
+      warningType: w.warningType,
+      message: w.message,
+      targetHealth: w.resource.targetHealth ? {
+        registeredTargetCount: w.resource.targetHealth.registeredTargetCount,
+        healthyTargetCount: w.resource.targetHealth.healthyTargetCount,
+        unhealthyTargetCount: w.resource.targetHealth.unhealthyTargetCount,
+      } : null,
+    })) ?? [],
+  });
 
   // Display results with appropriate severity
   displayValidationResults(summary, dataSource.name);

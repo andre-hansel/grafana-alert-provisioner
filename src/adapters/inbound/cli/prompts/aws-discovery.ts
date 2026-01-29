@@ -1,6 +1,9 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
-import type { DiscoveredResources } from '../../../../domain/entities/aws-resource.js';
+import type {
+  DiscoveredResources,
+  EcsServiceResource,
+} from '../../../../domain/entities/aws-resource.js';
 import { getTotalResourceCount } from '../../../../domain/entities/aws-resource.js';
 import type { AwsDiscoveryPort } from '../../../../ports/outbound/aws-discovery-port.js';
 import { getWorkflowLogger } from '../workflow-logger.js';
@@ -147,30 +150,166 @@ export async function runAwsDiscoveryPrompt(
   const totalCount = getTotalResourceCount(allResources);
   discoverySpinner.stop(`Discovery complete: ${totalCount} resources found across ${regions.length} region${regions.length > 1 ? 's' : ''}`);
 
-  // Log discovery results
+  // Log discovery results with FULL resource details for audit/debugging
   const logger = getWorkflowLogger();
   logger.log('01-aws-discovery', {
     regions,
     totalResources: totalCount,
     resourcesByService: {
-      ec2: { count: allResources.ec2.length, resources: allResources.ec2.map(r => ({ name: r.name, region: r.region, state: r.state })) },
-      rds: { count: allResources.rds.length, resources: allResources.rds.map(r => ({ name: r.name, region: r.region, engine: r.engine, hasReadReplicas: r.hasReadReplicas, isReadReplica: r.isReadReplica, hasStorageAutoscaling: r.hasStorageAutoscaling })) },
-      lambda: { count: allResources.lambda.length, resources: allResources.lambda.map(r => ({ name: r.name, region: r.region, runtime: r.runtime, hasDlqConfigured: r.hasDlqConfigured })) },
-      ecs: { count: allResources.ecs.length, resources: allResources.ecs.map(r => ({ name: r.name, region: r.region, resourceType: r.resourceType, ...(r.resourceType === 'service' ? { hasAutoScaling: (r as any).hasAutoScaling } : {}) })) },
-      eks: { count: allResources.eks.length, resources: allResources.eks.map(r => ({ name: r.name, region: r.region })) },
-      elasticache: { count: allResources.elasticache.length, resources: allResources.elasticache.map(r => ({ name: r.name, region: r.region, engine: r.engine, hasReplication: r.hasReplication })) },
-      alb: { count: allResources.alb.length, resources: allResources.alb.map(r => ({ name: r.name, region: r.region })) },
-      nlb: { count: allResources.nlb.length, resources: allResources.nlb.map(r => ({ name: r.name, region: r.region })) },
-      apigateway: { count: allResources.apigateway.length, resources: allResources.apigateway.map(r => ({ name: r.name, region: r.region })) },
-      s3: { count: allResources.s3.length, resources: allResources.s3.map(r => ({ name: r.name, region: r.region, hasRequestMetrics: r.hasRequestMetrics })) },
-      sqs: { count: allResources.sqs.length, resources: allResources.sqs.map(r => ({ name: r.name, region: r.region, isFifo: r.isFifo, hasDlq: r.hasDlq })) },
+      ec2: {
+        count: allResources.ec2.length,
+        resources: allResources.ec2.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          state: r.state,
+          instanceType: r.instanceType,
+        })),
+      },
+      rds: {
+        count: allResources.rds.length,
+        resources: allResources.rds.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          engine: r.engine,
+          status: r.status,
+          isAurora: r.isAurora,
+          clusterIdentifier: r.clusterIdentifier,
+          hasReadReplicas: r.hasReadReplicas,
+          isReadReplica: r.isReadReplica,
+          hasStorageAutoscaling: r.hasStorageAutoscaling,
+          isServerless: r.isServerless,
+        })),
+      },
+      lambda: {
+        count: allResources.lambda.length,
+        resources: allResources.lambda.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          runtime: r.runtime,
+          hasDlqConfigured: r.hasDlqConfigured,
+          isEdgeFunction: r.isEdgeFunction,
+        })),
+      },
+      ecs: {
+        count: allResources.ecs.length,
+        resources: allResources.ecs.map(r => {
+          if (r.resourceType === 'service') {
+            const svc = r as EcsServiceResource;
+            return {
+              id: r.id,
+              name: r.name,
+              region: r.region,
+              resourceType: r.resourceType,
+              clusterName: svc.clusterName,
+              status: svc.status,
+              desiredCount: svc.desiredCount,
+              runningCount: svc.runningCount,
+              hasAutoScaling: svc.hasAutoScaling,
+              containerInsightsEnabled: svc.containerInsightsEnabled,
+            };
+          }
+          return {
+            id: r.id,
+            name: r.name,
+            region: r.region,
+            resourceType: r.resourceType,
+            status: r.status,
+          };
+        }),
+      },
+      eks: {
+        count: allResources.eks.length,
+        resources: allResources.eks.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          version: r.version,
+          status: r.status,
+        })),
+      },
+      elasticache: {
+        count: allResources.elasticache.length,
+        resources: allResources.elasticache.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          engine: r.engine,
+          status: r.status,
+          hasReplication: r.hasReplication,
+        })),
+      },
+      alb: {
+        count: allResources.alb.length,
+        resources: allResources.alb.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          state: r.state,
+          targetHealth: r.targetHealth ? {
+            registeredTargetCount: r.targetHealth.registeredTargetCount,
+            healthyTargetCount: r.targetHealth.healthyTargetCount,
+            unhealthyTargetCount: r.targetHealth.unhealthyTargetCount,
+            targetGroupCount: r.targetHealth.targetGroupCount,
+          } : null,
+        })),
+      },
+      nlb: {
+        count: allResources.nlb.length,
+        resources: allResources.nlb.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          state: r.state,
+          targetHealth: r.targetHealth ? {
+            registeredTargetCount: r.targetHealth.registeredTargetCount,
+            healthyTargetCount: r.targetHealth.healthyTargetCount,
+            unhealthyTargetCount: r.targetHealth.unhealthyTargetCount,
+            targetGroupCount: r.targetHealth.targetGroupCount,
+          } : null,
+        })),
+      },
+      apigateway: {
+        count: allResources.apigateway.length,
+        resources: allResources.apigateway.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+        })),
+      },
+      s3: {
+        count: allResources.s3.length,
+        resources: allResources.s3.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          hasRequestMetrics: r.hasRequestMetrics,
+        })),
+      },
+      sqs: {
+        count: allResources.sqs.length,
+        resources: allResources.sqs.map(r => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          isFifo: r.isFifo,
+          hasDlq: r.hasDlq,
+        })),
+      },
     },
     featureSummary: {
       rdsHasReplicas: allResources.rds.some(r => r.hasReadReplicas || r.isReadReplica),
       lambdaHasDlq: allResources.lambda.some(r => r.hasDlqConfigured),
+      lambdaHasEdgeFunctions: allResources.lambda.some(r => r.isEdgeFunction),
       elasticacheHasReplication: allResources.elasticache.some(r => r.hasReplication),
-      ecsHasAutoScaling: allResources.ecs.some(r => r.resourceType === 'service' && (r as any).hasAutoScaling),
+      ecsHasAutoScaling: allResources.ecs.some(r => r.resourceType === 'service' && (r as EcsServiceResource).hasAutoScaling),
       sqsHasDlq: allResources.sqs.some(r => r.hasDlq),
+      albWithNoTargets: allResources.alb.filter(r => r.targetHealth?.registeredTargetCount === 0).length,
+      nlbWithNoTargets: allResources.nlb.filter(r => r.targetHealth?.registeredTargetCount === 0).length,
+      albWithUnhealthyTargets: allResources.alb.filter(r => r.targetHealth && r.targetHealth.healthyTargetCount === 0 && r.targetHealth.unhealthyTargetCount > 0).length,
+      nlbWithUnhealthyTargets: allResources.nlb.filter(r => r.targetHealth && r.targetHealth.healthyTargetCount === 0 && r.targetHealth.unhealthyTargetCount > 0).length,
     },
   });
   p.log.info(`Discovery logged to ${logger.getLogsDir()}`);
