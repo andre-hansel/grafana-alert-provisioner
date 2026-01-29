@@ -280,6 +280,9 @@ class GrafanaClient {
           data: config.data,
           no_data_state: config.noDataState,
           exec_err_state: config.execErrState,
+          // Grafana 11+: Number of missed evaluations before alert resolves
+          // Set to 1 (minimum required) - alert resolves after 1 evaluation with no data
+          missing_series_evals_to_resolve: 1,
         },
         for: config.for,
         labels: config.labels,
@@ -658,26 +661,36 @@ ${definitions.join(',\n')}
   /**
    * Generate a deterministic, unique UID for an alert rule.
    *
-   * Format: {title-slug}-{datasource-uid-short}
+   * Format: {title-base-slug}-{region}-{datasource-uid-short}
    *
    * This ensures:
-   * - Same alert + same data source = same UID (updates, not duplicates)
-   * - Same alert + different data source = different UID (no overwrites)
+   * - Same alert + same region + same data source = same UID (updates, not duplicates)
+   * - Same alert + different region = different UID (no collision within rule group)
+   * - Same alert + different data source = different UID (no overwrites across accounts)
    * - Grafana UID limit: 40 characters
    */
   private generateAlertUid(alert: AlertRule): string {
-    // Create a slug from title: lowercase, replace non-alphanumeric with dash
-    const titleSlug = alert.title
+    // Extract base title (remove region suffix like " (us-east-1)")
+    const baseTitle = alert.title.replace(/\s*\([^)]+\)\s*$/, '');
+
+    // Create a slug from base title: lowercase, replace non-alphanumeric with dash
+    const titleSlug = baseTitle
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '') // trim leading/trailing dashes
-      .substring(0, 28); // Leave room for separator and datasource uid
+      .substring(0, 18); // Leave room for region and datasource uid
 
-    // Use first 8 chars of datasource UID for uniqueness
-    const dsUidShort = alert.dataSource.uid.substring(0, 8);
+    // Extract region from CloudWatch query, or use 'global' for Prometheus
+    const region = alert.query.type === 'cloudwatch'
+      ? (alert.query as CloudWatchQuery).region.replace('us-', '').replace('-', '') // e.g., "east1"
+      : 'global';
 
-    // Combine: title-slug-dsuid (max 40 chars)
-    return `${titleSlug}-${dsUidShort}`;
+    // Use first 6 chars of datasource UID for uniqueness
+    const dsUidShort = alert.dataSource.uid.substring(0, 6);
+
+    // Combine: title-slug-region-dsuid (max 40 chars)
+    // Example: ec2-status-check-east1-cw1198
+    return `${titleSlug}-${region}-${dsUidShort}`;
   }
 }
 
