@@ -280,6 +280,8 @@ class GrafanaClient {
           data: config.data,
           no_data_state: config.noDataState,
           exec_err_state: config.execErrState,
+          // Grafana 11+ requires this field (must be > 0)
+          missing_series_evals_to_resolve: 1,
         },
         for: config.for,
         labels: config.labels,
