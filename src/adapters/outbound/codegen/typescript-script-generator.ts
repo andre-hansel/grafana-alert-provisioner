@@ -280,11 +280,11 @@ class GrafanaClient {
           data: config.data,
           no_data_state: config.noDataState,
           exec_err_state: config.execErrState,
-          // Grafana 11+ requires both fields
-          keep_firing_for: '1s', // Minimum positive value (0s rejected as "negative")
-          missing_series_evals_to_resolve: 1,
         },
         for: config.for,
+        // Grafana 11+ fields (at rule level, not inside grafana_alert)
+        keep_firing_for: '1s',
+        missing_series_evals_to_resolve: 1,
         labels: config.labels,
         annotations: config.annotations,
       })),
