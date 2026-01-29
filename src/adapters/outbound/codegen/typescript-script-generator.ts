@@ -280,9 +280,9 @@ class GrafanaClient {
           data: config.data,
           no_data_state: config.noDataState,
           exec_err_state: config.execErrState,
-          // Grafana 11+: Number of missed evaluations before alert resolves
-          // Set to 1 (minimum required) - alert resolves after 1 evaluation with no data
-          missing_series_evals_to_resolve: 1,
+          // Grafana 11+: Required fields for alert behavior
+          keep_firing_for: '0s', // Stop firing immediately when condition clears
+          missing_series_evals_to_resolve: 1, // Resolve after 1 evaluation with no data
         },
         for: config.for,
         labels: config.labels,
@@ -661,7 +661,10 @@ ${definitions.join(',\n')}
   /**
    * Generate a deterministic, unique UID for an alert rule.
    *
-   * Format: {title-base-slug}-{region}-{datasource-uid-short}
+   * Format: {service}-{hash}-{region}-{ds}
+   *
+   * Uses a hash of the full title to ensure uniqueness even when titles
+   * differ only at the end (e.g., "Critical-CPU" vs "Critical-Memory").
    *
    * This ensures:
    * - Same alert + same region + same data source = same UID (updates, not duplicates)
@@ -673,24 +676,39 @@ ${definitions.join(',\n')}
     // Extract base title (remove region suffix like " (us-east-1)")
     const baseTitle = alert.title.replace(/\s*\([^)]+\)\s*$/, '');
 
-    // Create a slug from base title: lowercase, replace non-alphanumeric with dash
-    const titleSlug = baseTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') // trim leading/trailing dashes
-      .substring(0, 18); // Leave room for region and datasource uid
+    // Extract service prefix (e.g., "EC2", "ECS", "ALB")
+    const serviceMatch = baseTitle.match(/^([A-Za-z0-9]+)-/);
+    const servicePrefix = (serviceMatch?.[1] ?? 'alert').toLowerCase().substring(0, 6);
 
-    // Extract region from CloudWatch query, or use 'global' for Prometheus
+    // Create a simple hash of the full base title for uniqueness
+    // This ensures "Critical-CPU" and "Critical-Memory" get different UIDs
+    const hash = this.simpleHash(baseTitle).toString(36).substring(0, 8);
+
+    // Extract region from CloudWatch query, or use 'glb' for Prometheus
     const region = alert.query.type === 'cloudwatch'
       ? (alert.query as CloudWatchQuery).region.replace('us-', '').replace('-', '') // e.g., "east1"
-      : 'global';
+      : 'glb';
 
-    // Use first 6 chars of datasource UID for uniqueness
+    // Use first 6 chars of datasource UID for uniqueness across accounts
     const dsUidShort = alert.dataSource.uid.substring(0, 6);
 
-    // Combine: title-slug-region-dsuid (max 40 chars)
-    // Example: ec2-status-check-east1-cw1198
-    return `${titleSlug}-${region}-${dsUidShort}`;
+    // Combine: service-hash-region-ds (max 40 chars)
+    // Example: ec2-1a2b3c4d-east1-cw1198
+    return `${servicePrefix}-${hash}-${region}-${dsUidShort}`;
+  }
+
+  /**
+   * Simple deterministic hash function for strings.
+   * Not cryptographic, just for generating unique IDs.
+   */
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
   }
 }
 
