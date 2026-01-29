@@ -280,9 +280,6 @@ class GrafanaClient {
           data: config.data,
           no_data_state: config.noDataState,
           exec_err_state: config.execErrState,
-          // Grafana 11+: Required fields for alert behavior
-          keep_firing_for: '0s', // Stop firing immediately when condition clears
-          missing_series_evals_to_resolve: 1, // Resolve after 1 evaluation with no data
         },
         for: config.for,
         labels: config.labels,
