@@ -12,13 +12,21 @@ import type { S3Resource, AwsResourceTag } from '../../../../domain/entities/aws
 const bucketLocationCache = new Map<string, string>();
 let bucketListCache: Bucket[] | null = null;
 
+// Request timeout to prevent indefinite hangs (60 seconds)
+const REQUEST_TIMEOUT_MS = 60000;
+
 export class S3DiscoveryService {
   private client: S3Client;
   private region: string;
 
   constructor(region: string) {
     this.region = region;
-    this.client = new S3Client({ region });
+    this.client = new S3Client({
+      region,
+      requestHandler: {
+        requestTimeout: REQUEST_TIMEOUT_MS,
+      } as any, // SDK types don't expose this well but it works
+    });
   }
 
   async discover(): Promise<readonly S3Resource[]> {
@@ -71,10 +79,17 @@ export class S3DiscoveryService {
       const command = new GetBucketLocationCommand({
         Bucket: bucketName,
       });
-      const response = await this.client.send(command);
+      // Add timeout wrapper to prevent indefinite hangs
+      const response = await Promise.race([
+        this.client.send(command),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), REQUEST_TIMEOUT_MS)
+        ),
+      ]);
       // Empty LocationConstraint means us-east-1
       return response.LocationConstraint ?? null;
     } catch {
+      // On error or timeout, skip this bucket
       return null;
     }
   }
