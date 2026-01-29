@@ -11,6 +11,7 @@
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
     "templates": "bun run src/cli/manage-templates.ts",
+    "archive": "bun run scripts/archive-output.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "bunx @biomejs/biome check src/"
