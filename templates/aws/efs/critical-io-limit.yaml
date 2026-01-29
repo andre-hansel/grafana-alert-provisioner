@@ -1,0 +1,37 @@
+id: efs-critical-io-limit
+name: "EFS-Alerts-Critical-IO-Limit"
+description: "Alert when any EFS is at IO limit"
+service: efs
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EFS
+    metric: PercentIOLimit
+    statistic: Average
+    dimensions:
+      - FileSystemId
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: efs
+  category: performance
+
+annotations:
+  summary: "At IO limit on EFS {{ $labels.resource_name }}"
+  description: "EFS {{ $labels.resource_name }} is at {{ $value }}% of IO limit - performance degraded"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

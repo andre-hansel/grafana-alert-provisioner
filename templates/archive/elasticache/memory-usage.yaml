@@ -1,0 +1,37 @@
+id: elasticache-memory-usage
+name: "ElastiCache High Memory Usage"
+description: "Alert when ElastiCache memory usage is high"
+service: elasticache
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: DatabaseMemoryUsagePercentage
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 70
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: capacity
+
+annotations:
+  summary: "High memory on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} memory usage is {{ $value }}% - memory pressure building"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

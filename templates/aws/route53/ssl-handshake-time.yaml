@@ -1,0 +1,37 @@
+id: route53-ssl-handshake-time
+name: "Route53-Alerts-Slow-SSL-Handshake"
+description: "Alert when any Route53 health check SSL handshake is slow"
+service: route53
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Route53
+    metric: SSLHandshakeTime
+    statistic: Average
+    dimensions:
+      - HealthCheckId
+    period: 300
+
+defaults:
+  threshold: 500
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: route53
+  category: performance
+
+annotations:
+  summary: "Slow SSL handshake on Route53 {{ $labels.resource_name }}"
+  description: "Route53 health check {{ $labels.resource_name }} SSL handshake time is {{ $value }}ms - SSL negotiation slow"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

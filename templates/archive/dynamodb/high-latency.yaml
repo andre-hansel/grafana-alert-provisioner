@@ -1,0 +1,37 @@
+id: dynamodb-high-latency
+name: "DynamoDB High Request Latency"
+description: "Alert when DynamoDB request latency is high"
+service: dynamodb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DynamoDB
+    metric: SuccessfulRequestLatency
+    statistic: Average
+    dimensions:
+      - TableName
+    period: 300
+
+defaults:
+  threshold: 20  # 20ms
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: dynamodb
+  category: performance
+
+annotations:
+  summary: "High latency on DynamoDB {{ $labels.resource_name }}"
+  description: "DynamoDB table {{ $labels.resource_name }} latency is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,37 @@
+id: stepfunctions-execution-throttled
+name: "Step Functions Execution Throttled"
+description: "Alert when Step Functions executions are being throttled"
+service: stepfunctions
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/States
+    metric: ExecutionThrottled
+    statistic: Sum
+    dimensions:
+      - StateMachineArn
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: stepfunctions
+  category: capacity
+
+annotations:
+  summary: "Executions throttled for Step Functions {{ $labels.resource_name }}"
+  description: "Step Functions {{ $labels.resource_name }} has {{ $value }} throttled executions - hitting execution rate limits"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,37 @@
+id: eventbridge-throttled-rules
+name: "EventBridge Throttled Rules"
+description: "Alert when EventBridge rules are being throttled"
+service: eventbridge
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Events
+    metric: ThrottledRules
+    statistic: Sum
+    dimensions:
+      - RuleName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: eventbridge
+  category: capacity
+
+annotations:
+  summary: "Throttled rules for EventBridge {{ $labels.resource_name }}"
+  description: "EventBridge rule {{ $labels.resource_name }} is being throttled - check limits"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

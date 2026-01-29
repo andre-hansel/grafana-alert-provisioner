@@ -1,0 +1,37 @@
+id: ebs-throughput-percentage
+name: "EBS-Alerts-High-Throughput-Usage"
+description: "Alert when any EBS throughput usage is high"
+service: ebs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: VolumeThroughputPercentage
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: capacity
+
+annotations:
+  summary: "High throughput usage on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} is using {{ $value }}% of throughput - approaching limit"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

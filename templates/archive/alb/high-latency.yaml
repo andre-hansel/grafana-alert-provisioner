@@ -1,0 +1,35 @@
+id: alb-high-latency
+name: "ALB High Latency"
+description: "Alert when ALB target response time is high"
+service: alb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ApplicationELB
+    metric: TargetResponseTime
+    statistic: Average
+    dimensions:
+      - LoadBalancer
+    period: 300
+
+defaults:
+  threshold: 2  # 2 seconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: alb
+  category: performance
+
+annotations:
+  summary: "High latency on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} average response time is {{ $value }}s"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

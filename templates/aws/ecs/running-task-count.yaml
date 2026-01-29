@@ -1,0 +1,39 @@
+id: ecs-running-task-count
+name: "ECS-Alerts-Running-Task-Count-Low"
+description: "Alert when any ECS service has fewer running tasks than desired"
+service: ecs
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: ECS/ContainerInsights
+    metric: RunningTaskCount
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 1  # Should be set to desired count
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ecs
+  category: availability
+
+annotations:
+  summary: "Low task count on ECS {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} has {{ $value }} running tasks - tasks failing to run"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,38 @@
+id: s3-total-request-latency
+name: "S3 High Request Latency"
+description: "Alert when S3 request latency is high"
+service: s3
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/S3
+    metric: TotalRequestLatency
+    statistic: Average
+    dimensions:
+      - BucketName
+      - FilterId
+    period: 300
+
+defaults:
+  threshold: 500
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: s3
+  category: performance
+
+annotations:
+  summary: "High latency on S3 {{ $labels.resource_name }}"
+  description: "S3 bucket {{ $labels.resource_name }} average request latency is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,36 @@
+id: elasticache-critical-evictions
+name: "ElastiCache-Alerts-Critical-Evictions"
+description: "Alert when any ElastiCache has high eviction rate"
+service: elasticache
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: Evictions
+    statistic: Sum
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 1000
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: capacity
+
+annotations:
+  summary: "Critical evictions on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} has {{ $value }} evictions - high eviction rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

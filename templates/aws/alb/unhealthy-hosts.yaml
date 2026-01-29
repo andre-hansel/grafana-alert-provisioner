@@ -1,0 +1,34 @@
+id: alb-unhealthy-hosts
+name: "ALB-Alerts-Unhealthy-Hosts"
+description: "Alert when any ALB has unhealthy target hosts"
+service: alb
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ApplicationELB
+    metric: UnHealthyHostCount
+    statistic: Average
+    dimensions:
+      - LoadBalancer
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 3m
+
+labels:
+  service: alb
+  category: availability
+
+annotations:
+  summary: "Unhealthy hosts on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} has {{ $value }} unhealthy hosts"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

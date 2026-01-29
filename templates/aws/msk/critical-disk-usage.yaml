@@ -1,0 +1,37 @@
+id: msk-critical-disk-usage
+name: "MSK-Alerts-Critical-Disk-Usage"
+description: "Alert when any MSK Kafka disk usage is critical"
+service: msk
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kafka
+    metric: KafkaDataLogsDiskUsed
+    statistic: Average
+    dimensions:
+      - Cluster Name
+    period: 300
+
+defaults:
+  threshold: 85
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: msk
+  category: capacity
+
+annotations:
+  summary: "Critical disk usage on MSK {{ $labels.resource_name }}"
+  description: "MSK cluster {{ $labels.resource_name }} disk usage is {{ $value }}% - retention at risk"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

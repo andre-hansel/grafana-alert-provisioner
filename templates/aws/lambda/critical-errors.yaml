@@ -1,0 +1,37 @@
+id: lambda-critical-errors
+name: "Lambda-Alerts-Critical-Errors"
+description: "Alert when any Lambda function has high error rate"
+service: lambda
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Lambda
+    metric: Errors
+    statistic: Sum
+    dimensions:
+      - FunctionName
+    period: 300
+
+defaults:
+  threshold: 5  # > 5% error rate approximation
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: errors
+
+annotations:
+  summary: "Critical errors on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} has {{ $value }} errors - high error rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

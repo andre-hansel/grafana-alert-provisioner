@@ -1,0 +1,37 @@
+id: rds-replica-lag
+name: "RDS Replica Lag"
+description: "Alert when RDS read replica is falling behind"
+service: rds
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: ReplicaLag
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 60  # 60 seconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: rds
+  category: availability
+
+annotations:
+  summary: "Replica lag on RDS {{ $labels.resource_name }}"
+  description: "RDS replica {{ $labels.resource_name }} is {{ $value }}s behind primary"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,36 @@
+id: msk-under-replicated-partitions
+name: "MSK-Alerts-Under-Replicated-Partitions"
+description: "Alert when any MSK has under-replicated partitions"
+service: msk
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kafka
+    metric: UnderReplicatedPartitions
+    statistic: Maximum
+    dimensions:
+      - Cluster Name
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: msk
+  category: availability
+
+annotations:
+  summary: "Under-replicated partitions on MSK {{ $labels.resource_name }}"
+  description: "MSK cluster {{ $labels.resource_name }} has {{ $value }} under-replicated partitions - data durability at risk"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

@@ -1,0 +1,37 @@
+id: eventbridge-critical-failed-invocations
+name: "EventBridge-Alerts-Critical-Failed-Invocations"
+description: "Alert when any EventBridge has high invocation failure rate"
+service: eventbridge
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Events
+    metric: FailedInvocations
+    statistic: Sum
+    dimensions:
+      - RuleName
+    period: 300
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: eventbridge
+  category: availability
+
+annotations:
+  summary: "Critical failed invocations for EventBridge {{ $labels.resource_name }}"
+  description: "EventBridge rule {{ $labels.resource_name }} has {{ $value }} failed invocations - high event delivery failure rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

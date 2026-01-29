@@ -1,0 +1,36 @@
+id: ecs-service-high-memory
+name: "ECS Service High Memory"
+description: "Alert when ECS service memory utilization is high"
+service: ecs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ECS
+    metric: MemoryUtilization
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: ecs
+  category: performance
+
+annotations:
+  summary: "High memory on ECS service {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} memory utilization is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

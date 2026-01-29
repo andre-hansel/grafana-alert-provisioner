@@ -1,0 +1,37 @@
+id: dynamodb-write-throttles
+name: "DynamoDB Write Throttle Events"
+description: "Alert when DynamoDB write requests are being throttled"
+service: dynamodb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DynamoDB
+    metric: WriteThrottleEvents
+    statistic: Sum
+    dimensions:
+      - TableName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: dynamodb
+  category: performance
+
+annotations:
+  summary: "Write throttles on DynamoDB {{ $labels.resource_name }}"
+  description: "DynamoDB table {{ $labels.resource_name }} has {{ $value }} write throttle events"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

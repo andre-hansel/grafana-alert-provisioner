@@ -1,0 +1,36 @@
+id: ecs-service-high-cpu
+name: "ECS Service High CPU"
+description: "Alert when ECS service CPU utilization is high"
+service: ecs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ECS
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: ecs
+  category: performance
+
+annotations:
+  summary: "High CPU on ECS service {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} CPU utilization is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

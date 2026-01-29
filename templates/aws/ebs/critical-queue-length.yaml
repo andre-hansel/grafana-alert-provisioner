@@ -1,0 +1,37 @@
+id: ebs-critical-queue-length
+name: "EBS-Alerts-Critical-Queue-Length"
+description: "Alert when any EBS volume IO queue is high"
+service: ebs
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: VolumeQueueLength
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 20
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: performance
+
+annotations:
+  summary: "Critical queue length on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} queue length is {{ $value }} - performance degraded"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

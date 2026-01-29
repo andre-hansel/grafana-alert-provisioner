@@ -1,0 +1,37 @@
+id: sns-critical-notifications-failed
+name: "SNS-Alerts-Critical-Notifications-Failed"
+description: "Alert when any SNS has high notification delivery failures"
+service: sns
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/SNS
+    metric: NumberOfNotificationsFailed
+    statistic: Sum
+    dimensions:
+      - TopicName
+    period: 300
+
+defaults:
+  threshold: 100
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: sns
+  category: availability
+
+annotations:
+  summary: "Critical notifications failed for SNS {{ $labels.resource_name }}"
+  description: "SNS topic {{ $labels.resource_name }} has {{ $value }} failed notifications - high delivery failure rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

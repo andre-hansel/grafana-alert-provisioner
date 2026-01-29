@@ -1,0 +1,38 @@
+id: s3-first-byte-latency
+name: "S3 Slow First Byte Latency"
+description: "Alert when S3 time to first byte is slow"
+service: s3
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/S3
+    metric: FirstByteLatency
+    statistic: Average
+    dimensions:
+      - BucketName
+      - FilterId
+    period: 300
+
+defaults:
+  threshold: 200
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: s3
+  category: performance
+
+annotations:
+  summary: "Slow first byte on S3 {{ $labels.resource_name }}"
+  description: "S3 bucket {{ $labels.resource_name }} time to first byte is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

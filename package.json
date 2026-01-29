@@ -1,0 +1,39 @@
+{
+  "name": "grafana-alert-provisioner",
+  "version": "1.0.0",
+  "description": "AWS-to-Grafana Alert Provisioner - Discover AWS infrastructure and generate Grafana alert scripts",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "grafana-alert-provisioner": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "templates": "bun run src/cli/manage-templates.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "bunx @biomejs/biome check src/"
+  },
+  "dependencies": {
+    "@aws-sdk/client-api-gateway": "^3.700.0",
+    "@aws-sdk/client-application-auto-scaling": "3.978.0",
+    "@aws-sdk/client-ec2": "^3.700.0",
+    "@aws-sdk/client-ecs": "^3.700.0",
+    "@aws-sdk/client-eks": "^3.700.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.700.0",
+    "@aws-sdk/client-elasticache": "^3.700.0",
+    "@aws-sdk/client-lambda": "^3.700.0",
+    "@aws-sdk/client-rds": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/client-sqs": "^3.700.0",
+    "@aws-sdk/client-sts": "^3.700.0",
+    "@clack/prompts": "^0.8.2",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}

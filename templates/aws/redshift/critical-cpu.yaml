@@ -1,0 +1,37 @@
+id: redshift-critical-cpu
+name: "Redshift-Alerts-Critical-CPU"
+description: "Alert when any Redshift cluster CPU is critical"
+service: redshift
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Redshift
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - ClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: redshift
+  category: performance
+
+annotations:
+  summary: "Critical CPU on Redshift {{ $labels.resource_name }}"
+  description: "Redshift cluster {{ $labels.resource_name }} CPU is {{ $value }}% - cluster overloaded"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

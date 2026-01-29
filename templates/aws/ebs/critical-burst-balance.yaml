@@ -1,0 +1,37 @@
+id: ebs-critical-burst-balance
+name: "EBS-Alerts-Critical-Burst-Balance"
+description: "Alert when any EBS gp2 volume burst balance is critical"
+service: ebs
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: BurstBalance
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 5
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: capacity
+
+annotations:
+  summary: "Critical burst balance on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} burst balance is {{ $value }}% - performance will drop"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

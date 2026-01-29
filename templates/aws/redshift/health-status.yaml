@@ -1,0 +1,36 @@
+id: redshift-health-status
+name: "Redshift-Alerts-Unhealthy"
+description: "Alert when any Redshift cluster is unhealthy"
+service: redshift
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Redshift
+    metric: HealthStatus
+    statistic: Minimum
+    dimensions:
+      - ClusterIdentifier
+    period: 60
+
+defaults:
+  threshold: 1
+  threshold_operator: lt
+  evaluation_interval: 1m
+  for_duration: 1m
+
+labels:
+  service: redshift
+  category: availability
+
+annotations:
+  summary: "Unhealthy Redshift {{ $labels.resource_name }}"
+  description: "Redshift cluster {{ $labels.resource_name }} health status is {{ $value }} - cluster unhealthy"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

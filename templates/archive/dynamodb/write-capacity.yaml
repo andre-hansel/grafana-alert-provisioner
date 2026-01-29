@@ -1,0 +1,38 @@
+id: dynamodb-write-capacity
+name: "DynamoDB High Write Capacity"
+description: "Alert when DynamoDB is approaching write capacity limit"
+service: dynamodb
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DynamoDB
+    metric: ConsumedWriteCapacityUnits
+    statistic: Sum
+    dimensions:
+      - TableName
+    period: 300
+
+defaults:
+  threshold: 80  # Percentage of provisioned
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: dynamodb
+  category: capacity
+
+annotations:
+  summary: "High write capacity on DynamoDB {{ $labels.resource_name }}"
+  description: "DynamoDB table {{ $labels.resource_name }} consumed {{ $value }} write capacity units - approaching limit"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

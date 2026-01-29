@@ -1,0 +1,37 @@
+id: alb-critical-target-5xx-errors
+name: "ALB-Alerts-Critical-Target-5xx-Errors"
+description: "Alert when any ALB targets have high 5xx error rate"
+service: alb
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApplicationELB
+    metric: HTTPCode_Target_5XX_Count
+    statistic: Sum
+    dimensions:
+      - LoadBalancer
+    period: 300
+
+defaults:
+  threshold: 50
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: alb
+  category: errors
+
+annotations:
+  summary: "Critical target 5xx errors on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} targets returned {{ $value }} 5xx errors - high backend error rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

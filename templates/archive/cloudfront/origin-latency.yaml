@@ -1,0 +1,38 @@
+id: cloudfront-origin-latency
+name: "CloudFront High Origin Latency"
+description: "Alert when CloudFront origin response time is high"
+service: cloudfront
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/CloudFront
+    metric: OriginLatency
+    statistic: Average
+    dimensions:
+      - DistributionId
+      - Region
+    period: 300
+
+defaults:
+  threshold: 2000  # 2 seconds in milliseconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: cloudfront
+  category: performance
+
+annotations:
+  summary: "High origin latency on CloudFront {{ $labels.resource_name }}"
+  description: "CloudFront distribution {{ $labels.resource_name }} origin latency is {{ $value }}ms - slow origin response"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

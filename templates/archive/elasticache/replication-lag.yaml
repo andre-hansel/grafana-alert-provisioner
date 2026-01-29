@@ -1,0 +1,37 @@
+id: elasticache-replication-lag
+name: "ElastiCache Replication Lag"
+description: "Alert when ElastiCache Redis replication is lagging"
+service: elasticache
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: ReplicationLag
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 0.5
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: availability
+
+annotations:
+  summary: "Replication lag on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} replication lag is {{ $value }}s - replica falling behind"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

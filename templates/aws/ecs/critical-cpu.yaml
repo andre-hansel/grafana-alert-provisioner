@@ -1,0 +1,38 @@
+id: ecs-critical-cpu
+name: "ECS-Alerts-Critical-CPU"
+description: "Alert when any ECS service CPU exceeds critical threshold"
+service: ecs
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ECS
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ecs
+  category: performance
+
+annotations:
+  summary: "Critical CPU on ECS {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} CPU is {{ $value }}% - immediate scaling required"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

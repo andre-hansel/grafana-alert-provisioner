@@ -1,0 +1,38 @@
+id: aurora-serverless-acu-high
+name: "Aurora-Serverless-Alerts-ACU-High"
+description: "Alert when Aurora Serverless v2 ACU utilization is critically high"
+service: rds
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: ACUUtilization
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 90
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: aurora-serverless
+  category: capacity
+
+annotations:
+  summary: "High ACU utilization on Aurora Serverless {{ $labels.DBClusterIdentifier }}"
+  description: "Aurora Serverless cluster {{ $labels.DBClusterIdentifier }} ACU utilization is {{ $value }}% - may need to increase max ACU"
+  runbook_url: "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.setting-capacity.html"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

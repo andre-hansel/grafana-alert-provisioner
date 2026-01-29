@@ -1,0 +1,38 @@
+id: documentdb-buffer-cache-hit-ratio
+name: "DocumentDB Low Buffer Cache Hit Ratio"
+description: "Alert when DocumentDB buffer cache hit ratio is low"
+service: documentdb
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DocDB
+    metric: BufferCacheHitRatio
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: documentdb
+  category: performance
+
+annotations:
+  summary: "Low cache efficiency on DocumentDB {{ $labels.resource_name }}"
+  description: "DocumentDB cluster {{ $labels.resource_name }} buffer cache hit ratio is {{ $value }}% - scale up instance"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

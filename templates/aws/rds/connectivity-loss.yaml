@@ -1,0 +1,36 @@
+id: rds-connectivity-loss
+name: "RDS-Alerts-Connectivity-Loss"
+description: "Alert when any RDS has zero database connections indicating complete connectivity loss"
+service: rds
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: DatabaseConnections
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: rds
+  category: availability
+
+annotations:
+  summary: "Connectivity loss on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} has zero connections - complete connectivity loss, DR trigger"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

@@ -1,0 +1,38 @@
+id: natgateway-packets-dropped
+name: "NATGateway-Alerts-Packets-Dropped"
+description: "Alert when any NAT Gateway is dropping packets"
+service: natgateway
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/NATGateway
+    metric: PacketsDropCount
+    statistic: Sum
+    dimensions:
+      - NatGatewayId
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: natgateway
+  category: availability
+
+annotations:
+  summary: "Packets dropped on NAT Gateway {{ $labels.resource_name }}"
+  description: "NAT Gateway {{ $labels.resource_name }} dropped {{ $value }} packets - traffic being dropped"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

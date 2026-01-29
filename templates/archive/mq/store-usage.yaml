@@ -1,0 +1,37 @@
+id: mq-store-usage
+name: "Amazon MQ High Store Usage"
+description: "Alert when Amazon MQ message store is filling up"
+service: mq
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AmazonMQ
+    metric: StorePercentUsage
+    statistic: Average
+    dimensions:
+      - Broker
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: mq
+  category: capacity
+
+annotations:
+  summary: "High store usage on Amazon MQ {{ $labels.resource_name }}"
+  description: "Amazon MQ broker {{ $labels.resource_name }} store usage is {{ $value }}% - message store filling up"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

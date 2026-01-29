@@ -1,0 +1,37 @@
+id: neptune-low-memory
+name: "Neptune Low Memory"
+description: "Alert when Neptune database memory is low"
+service: neptune
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Neptune
+    metric: FreeableMemory
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 1073741824  # 1 GB
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: neptune
+  category: capacity
+
+annotations:
+  summary: "Low memory on Neptune {{ $labels.resource_name }}"
+  description: "Neptune cluster {{ $labels.resource_name }} has {{ $value | humanize1024 }}B freeable memory - memory pressure"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

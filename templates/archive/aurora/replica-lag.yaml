@@ -1,0 +1,37 @@
+id: aurora-replica-lag
+name: "Aurora Replica Lag"
+description: "Alert when Aurora replica is falling behind"
+service: aurora
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: AuroraReplicaLag
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 100  # 100ms
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: availability
+
+annotations:
+  summary: "Replica lag on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} replica lag is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

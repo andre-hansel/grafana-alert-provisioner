@@ -1,0 +1,37 @@
+id: aurora-critical-memory
+name: "Aurora-Alerts-Critical-Low-Memory"
+description: "Alert when any Aurora memory is critically low"
+service: aurora
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: FreeableMemory
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 104857600  # 100 MB in bytes
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: capacity
+
+annotations:
+  summary: "Critical memory on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} has {{ $value | humanize1024 }}B freeable memory - memory exhaustion risk"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

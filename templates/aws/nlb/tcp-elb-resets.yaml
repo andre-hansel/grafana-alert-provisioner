@@ -1,0 +1,37 @@
+id: nlb-tcp-elb-resets
+name: "NLB-Alerts-TCP-Resets"
+description: "Alert when any NLB is generating TCP resets"
+service: nlb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/NetworkELB
+    metric: TCP_ELB_Reset_Count
+    statistic: Sum
+    dimensions:
+      - LoadBalancer
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: nlb
+  category: performance
+
+annotations:
+  summary: "NLB resets on {{ $labels.resource_name }}"
+  description: "NLB {{ $labels.resource_name }} generated {{ $value }} TCP resets - check idle timeout"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

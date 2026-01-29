@@ -1,0 +1,37 @@
+id: ebs-write-latency
+name: "EBS High Write Latency"
+description: "Alert when EBS write latency is high"
+service: ebs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: VolumeTotalWriteTime
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 100
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: performance
+
+annotations:
+  summary: "High write latency on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} write latency is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

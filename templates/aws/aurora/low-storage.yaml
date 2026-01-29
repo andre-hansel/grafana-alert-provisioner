@@ -1,0 +1,38 @@
+id: aurora-low-storage
+name: "Aurora-Alerts-Low-Storage"
+description: "Alert when any Aurora cluster is running low on storage"
+service: rds
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: FreeLocalStorage
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 5368709120  # 5GB in bytes
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: aurora
+  category: storage
+
+annotations:
+  summary: "Low storage on Aurora {{ $labels.DBClusterIdentifier }}"
+  description: "Aurora cluster {{ $labels.DBClusterIdentifier }} has only {{ $value | humanize1024 }}B free local storage"
+  runbook_url: "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Performance.html"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

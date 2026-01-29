@@ -1,0 +1,36 @@
+id: documentdb-connectivity-loss
+name: "DocumentDB-Alerts-Connectivity-Loss"
+description: "Alert when any DocumentDB has zero connections"
+service: documentdb
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DocDB
+    metric: DatabaseConnections
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: documentdb
+  category: availability
+
+annotations:
+  summary: "Connectivity loss on DocumentDB {{ $labels.resource_name }}"
+  description: "DocumentDB cluster {{ $labels.resource_name }} has zero connections - complete connectivity loss, DR trigger"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

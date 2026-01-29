@@ -1,0 +1,35 @@
+id: rds-high-cpu
+name: "RDS High CPU Utilization"
+description: "Alert when RDS instance CPU exceeds threshold"
+service: rds
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/RDS
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: rds
+  category: performance
+
+annotations:
+  summary: "High CPU on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} CPU utilization is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

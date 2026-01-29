@@ -1,0 +1,37 @@
+id: transitgateway-packets-dropped-no-route
+name: "TransitGateway-Alerts-Packets-Dropped-No-Route"
+description: "Alert when any Transit Gateway drops packets due to missing routes"
+service: transitgateway
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/TransitGateway
+    metric: PacketDropCountNoRoute
+    statistic: Sum
+    dimensions:
+      - TransitGateway
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: transitgateway
+  category: availability
+
+annotations:
+  summary: "Packets dropped (no route) on TGW {{ $labels.resource_name }}"
+  description: "Transit Gateway {{ $labels.resource_name }} dropped {{ $value }} packets due to missing routes - check TGW config"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

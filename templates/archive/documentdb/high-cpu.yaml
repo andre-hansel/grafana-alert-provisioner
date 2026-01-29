@@ -1,0 +1,37 @@
+id: documentdb-high-cpu
+name: "DocumentDB High CPU"
+description: "Alert when DocumentDB CPU is high"
+service: documentdb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DocDB
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: documentdb
+  category: performance
+
+annotations:
+  summary: "High CPU on DocumentDB {{ $labels.resource_name }}"
+  description: "DocumentDB cluster {{ $labels.resource_name }} CPU is {{ $value }}% - consider scaling instance size"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

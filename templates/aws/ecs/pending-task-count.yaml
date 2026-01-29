@@ -1,0 +1,38 @@
+id: ecs-pending-task-count
+name: "ECS-Alerts-Pending-Task-Count"
+description: "Alert when any ECS service has tasks stuck in pending"
+service: ecs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: ECS/ContainerInsights
+    metric: PendingTaskCount
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ecs
+  category: availability
+
+annotations:
+  summary: "Pending tasks on ECS {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} has {{ $value }} pending tasks - tasks stuck in pending"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

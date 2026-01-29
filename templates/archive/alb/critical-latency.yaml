@@ -1,0 +1,37 @@
+id: alb-critical-latency
+name: "ALB Critical Response Time"
+description: "Alert when ALB backend response time is very high"
+service: alb
+severity: critical
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApplicationELB
+    metric: TargetResponseTime
+    statistic: Average
+    dimensions:
+      - LoadBalancer
+    period: 300
+
+defaults:
+  threshold: 5
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: alb
+  category: performance
+
+annotations:
+  summary: "Critical latency on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} response time is {{ $value }}s - very slow backend response"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

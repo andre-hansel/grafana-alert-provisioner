@@ -1,0 +1,37 @@
+id: neptune-buffer-cache-hit-ratio
+name: "Neptune Low Buffer Cache Hit Ratio"
+description: "Alert when Neptune buffer cache hit ratio is low"
+service: neptune
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Neptune
+    metric: BufferCacheHitRatio
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: neptune
+  category: performance
+
+annotations:
+  summary: "Low cache efficiency on Neptune {{ $labels.resource_name }}"
+  description: "Neptune cluster {{ $labels.resource_name }} buffer cache hit ratio is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

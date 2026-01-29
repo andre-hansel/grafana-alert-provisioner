@@ -1,0 +1,38 @@
+id: ecs-critical-memory
+name: "ECS-Alerts-Critical-Memory"
+description: "Alert when any ECS service memory exceeds critical threshold"
+service: ecs
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ECS
+    metric: MemoryUtilization
+    statistic: Average
+    dimensions:
+      - ClusterName
+      - ServiceName
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ecs
+  category: capacity
+
+annotations:
+  summary: "Critical memory on ECS {{ $labels.resource_name }}"
+  description: "ECS service {{ $labels.resource_name }} memory is {{ $value }}% - OOM risk"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

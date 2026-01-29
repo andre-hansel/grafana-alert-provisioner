@@ -1,0 +1,37 @@
+id: aurora-low-memory
+name: "Aurora Low Freeable Memory"
+description: "Alert when Aurora is running low on memory"
+service: aurora
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: FreeableMemory
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 1073741824  # 1 GB in bytes
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: capacity
+
+annotations:
+  summary: "Low memory on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} has {{ $value | humanize1024 }}B freeable memory - memory pressure"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

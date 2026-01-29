@@ -1,0 +1,37 @@
+id: mq-critical-heap-usage
+name: "MQ-Alerts-Critical-Heap-Usage"
+description: "Alert when any Amazon MQ JVM heap usage is critical"
+service: mq
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AmazonMQ
+    metric: HeapUsage
+    statistic: Average
+    dimensions:
+      - Broker
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: mq
+  category: capacity
+
+annotations:
+  summary: "Critical heap usage on Amazon MQ {{ $labels.resource_name }}"
+  description: "Amazon MQ broker {{ $labels.resource_name }} heap usage is {{ $value }}% - memory exhaustion risk"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

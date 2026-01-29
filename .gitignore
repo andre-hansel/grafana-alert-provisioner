@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Output
+output/
+*.generated.ts
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Build
+dist/
+
+# Logs
+*.log
+logs/
+
+# Old/archived directories
+alert_deployer/

@@ -1,0 +1,37 @@
+id: kinesis-read-throttled
+name: "Kinesis Read Throttled"
+description: "Alert when Kinesis read capacity is exceeded"
+service: kinesis
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kinesis
+    metric: ReadProvisionedThroughputExceeded
+    statistic: Sum
+    dimensions:
+      - StreamName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: kinesis
+  category: capacity
+
+annotations:
+  summary: "Read throttled on Kinesis {{ $labels.resource_name }}"
+  description: "Kinesis stream {{ $labels.resource_name }} read capacity exceeded {{ $value }} times - scale up"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

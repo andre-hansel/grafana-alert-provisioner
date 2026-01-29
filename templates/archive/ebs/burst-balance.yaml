@@ -1,0 +1,37 @@
+id: ebs-burst-balance
+name: "EBS Low Burst Balance"
+description: "Alert when EBS gp2 volume burst balance is low"
+service: ebs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: BurstBalance
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 20
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: capacity
+
+annotations:
+  summary: "Low burst balance on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} burst balance is {{ $value }}% - credits depleting"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

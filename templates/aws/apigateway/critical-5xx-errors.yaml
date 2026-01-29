@@ -1,0 +1,38 @@
+id: apigateway-critical-5xx-errors
+name: "APIGateway-Alerts-Critical-5xx-Errors"
+description: "Alert when any API Gateway 5XX error rate is critically high"
+service: apigateway
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApiGateway
+    metric: 5XXError
+    statistic: Average
+    dimensions:
+      - ApiName
+      - Stage
+    period: 300
+
+defaults:
+  threshold: 5
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: apigateway
+  category: performance
+
+annotations:
+  summary: "Critical 5XX errors on API Gateway {{ $labels.resource_name }}"
+  description: "API Gateway {{ $labels.resource_name }} has {{ $value }}% 5XX error rate - high error rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

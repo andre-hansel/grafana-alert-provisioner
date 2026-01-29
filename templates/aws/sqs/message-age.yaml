@@ -1,0 +1,36 @@
+id: sqs-message-age
+name: "SQS-Alerts-Message-Age"
+description: "Alert when messages are sitting too long in any queue"
+service: sqs
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/SQS
+    metric: ApproximateAgeOfOldestMessage
+    statistic: Maximum
+    dimensions:
+      - QueueName
+    period: 300
+
+defaults:
+  threshold: 3600  # 1 hour
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: sqs
+  category: performance
+
+annotations:
+  summary: "Critical message age in SQS {{ $labels.resource_name }}"
+  description: "SQS queue {{ $labels.resource_name }} oldest message is {{ $value }}s old - severe message processing delay"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

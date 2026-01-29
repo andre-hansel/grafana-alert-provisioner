@@ -1,0 +1,37 @@
+id: redshift-high-cpu
+name: "Redshift High CPU"
+description: "Alert when Redshift cluster CPU is high"
+service: redshift
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Redshift
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - ClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: redshift
+  category: performance
+
+annotations:
+  summary: "High CPU on Redshift {{ $labels.resource_name }}"
+  description: "Redshift cluster {{ $labels.resource_name }} CPU is {{ $value }}% - consider scaling or query optimization"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

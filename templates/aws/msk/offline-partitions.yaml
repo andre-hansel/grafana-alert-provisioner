@@ -1,0 +1,36 @@
+id: msk-offline-partitions
+name: "MSK-Alerts-Offline-Partitions"
+description: "Alert when any MSK has offline partitions"
+service: msk
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kafka
+    metric: OfflinePartitionsCount
+    statistic: Maximum
+    dimensions:
+      - Cluster Name
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 1m
+
+labels:
+  service: msk
+  category: availability
+
+annotations:
+  summary: "Offline partitions on MSK {{ $labels.resource_name }}"
+  description: "MSK cluster {{ $labels.resource_name }} has {{ $value }} offline partitions - data unavailable"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

@@ -1,0 +1,36 @@
+id: dynamodb-system-errors
+name: "DynamoDB-Alerts-System-Errors"
+description: "Alert when any DynamoDB has system errors"
+service: dynamodb
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DynamoDB
+    metric: SystemErrors
+    statistic: Sum
+    dimensions:
+      - TableName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: dynamodb
+  category: availability
+
+annotations:
+  summary: "System errors on DynamoDB {{ $labels.resource_name }}"
+  description: "DynamoDB table {{ $labels.resource_name }} has {{ $value }} system errors - DynamoDB service errors"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

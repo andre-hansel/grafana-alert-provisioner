@@ -1,0 +1,38 @@
+id: apigateway-critical-latency
+name: "API Gateway Critical Latency"
+description: "Alert when API Gateway latency is critically high"
+service: apigateway
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApiGateway
+    metric: Latency
+    statistic: p99
+    dimensions:
+      - ApiName
+      - Stage
+    period: 300
+
+defaults:
+  threshold: 5000
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: apigateway
+  category: performance
+
+annotations:
+  summary: "Critical latency on API Gateway {{ $labels.resource_name }}"
+  description: "API Gateway {{ $labels.resource_name }} p99 latency is {{ $value }}ms - very slow responses"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

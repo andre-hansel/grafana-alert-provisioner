@@ -1,0 +1,35 @@
+id: lambda-throttles
+name: "Lambda Function Throttles"
+description: "Alert when Lambda function is being throttled"
+service: lambda
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/Lambda
+    metric: Throttles
+    statistic: Sum
+    dimensions:
+      - FunctionName
+    period: 60
+
+defaults:
+  threshold: 1
+  threshold_operator: gte
+  evaluation_interval: 1m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: throttling
+
+annotations:
+  summary: "Throttling on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} has {{ $value }} throttled invocations"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

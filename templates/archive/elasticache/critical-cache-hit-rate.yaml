@@ -1,0 +1,37 @@
+id: elasticache-critical-cache-hit-rate
+name: "ElastiCache Critical Cache Hit Rate"
+description: "Alert when ElastiCache cache hit rate is critically low"
+service: elasticache
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: CacheHitRate
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: performance
+
+annotations:
+  summary: "Critical cache hit rate on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} cache hit rate is {{ $value }}% - poor cache performance"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

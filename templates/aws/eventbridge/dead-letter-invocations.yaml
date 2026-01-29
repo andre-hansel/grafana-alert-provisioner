@@ -1,0 +1,37 @@
+id: eventbridge-dead-letter-invocations
+name: "EventBridge-Alerts-Dead-Letter-Invocations"
+description: "Alert when any EventBridge events are being sent to DLQ"
+service: eventbridge
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Events
+    metric: DeadLetterInvocations
+    statistic: Sum
+    dimensions:
+      - RuleName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: eventbridge
+  category: availability
+
+annotations:
+  summary: "DLQ invocations for EventBridge {{ $labels.resource_name }}"
+  description: "EventBridge rule {{ $labels.resource_name }} has {{ $value }} events sent to DLQ - events failing delivery"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

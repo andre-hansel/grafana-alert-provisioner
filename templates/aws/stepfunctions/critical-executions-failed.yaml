@@ -1,0 +1,37 @@
+id: stepfunctions-critical-executions-failed
+name: "StepFunctions-Alerts-Critical-Execution-Failures"
+description: "Alert when any Step Functions has high failure rate"
+service: stepfunctions
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/States
+    metric: ExecutionsFailed
+    statistic: Sum
+    dimensions:
+      - StateMachineArn
+    period: 300
+
+defaults:
+  threshold: 5
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: stepfunctions
+  category: performance
+
+annotations:
+  summary: "Critical failures for Step Functions {{ $labels.resource_name }}"
+  description: "Step Functions {{ $labels.resource_name }} has {{ $value }} failed executions - high workflow failure rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

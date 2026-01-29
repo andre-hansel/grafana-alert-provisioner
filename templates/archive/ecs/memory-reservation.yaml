@@ -1,0 +1,37 @@
+id: ecs-memory-reservation
+name: "ECS Cluster Memory Reservation"
+description: "Alert when ECS cluster memory reservation is high"
+service: ecs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ECS
+    metric: MemoryReservation
+    statistic: Average
+    dimensions:
+      - ClusterName
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ecs
+  category: capacity
+
+annotations:
+  summary: "High memory reservation on ECS cluster {{ $labels.resource_name }}"
+  description: "ECS cluster {{ $labels.resource_name }} memory reservation is {{ $value }}% - cluster capacity low"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

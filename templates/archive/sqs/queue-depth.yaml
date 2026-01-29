@@ -1,0 +1,35 @@
+id: sqs-high-queue-depth
+name: "SQS High Queue Depth"
+description: "Alert when SQS queue has too many messages"
+service: sqs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/SQS
+    metric: ApproximateNumberOfMessagesVisible
+    statistic: Average
+    dimensions:
+      - QueueName
+    period: 300
+
+defaults:
+  threshold: 1000
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: sqs
+  category: backlog
+
+annotations:
+  summary: "High queue depth on SQS {{ $labels.resource_name }}"
+  description: "SQS queue {{ $labels.resource_name }} has {{ $value }} visible messages"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

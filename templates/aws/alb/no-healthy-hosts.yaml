@@ -1,0 +1,37 @@
+id: alb-no-healthy-hosts
+name: "ALB-Alerts-No-Healthy-Hosts"
+description: "Alert when any ALB has no healthy targets"
+service: alb
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApplicationELB
+    metric: HealthyHostCount
+    statistic: Minimum
+    dimensions:
+      - LoadBalancer
+      - TargetGroup
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 1m
+
+labels:
+  service: alb
+  category: availability
+
+annotations:
+  summary: "No healthy hosts on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} has no healthy targets - service outage"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

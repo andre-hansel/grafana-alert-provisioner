@@ -1,0 +1,37 @@
+id: kinesis-write-throttled
+name: "Kinesis Write Throttled"
+description: "Alert when Kinesis write capacity is exceeded"
+service: kinesis
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kinesis
+    metric: WriteProvisionedThroughputExceeded
+    statistic: Sum
+    dimensions:
+      - StreamName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: kinesis
+  category: capacity
+
+annotations:
+  summary: "Write throttled on Kinesis {{ $labels.resource_name }}"
+  description: "Kinesis stream {{ $labels.resource_name }} write capacity exceeded {{ $value }} times - data may be lost"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

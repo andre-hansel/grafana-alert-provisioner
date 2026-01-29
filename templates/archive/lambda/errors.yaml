@@ -1,0 +1,36 @@
+id: lambda-errors
+name: "Lambda Function Errors"
+description: "Alert when Lambda function is experiencing errors"
+service: lambda
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/Lambda
+    metric: Errors
+    statistic: Sum
+    dimensions:
+      - FunctionName
+    period: 60
+
+defaults:
+  threshold: 1
+  threshold_operator: gte
+  evaluation_interval: 1m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: errors
+
+annotations:
+  summary: "Errors on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} has {{ $value }} errors in the last period"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

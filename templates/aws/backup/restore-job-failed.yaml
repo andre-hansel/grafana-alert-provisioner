@@ -1,0 +1,35 @@
+id: backup-restore-job-failed
+name: "Backup-Alerts-Restore-Job-Failed"
+description: "Alert when any AWS Backup restore job fails"
+service: backup
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Backup
+    metric: NumberOfRestoreJobsFailed
+    statistic: Sum
+    dimensions:
+      - BackupVaultName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 0m
+
+labels:
+  service: backup
+  category: availability
+
+annotations:
+  summary: "Restore job failed for {{ $labels.resource_name }}"
+  description: "AWS Backup vault {{ $labels.resource_name }} has {{ $value }} failed restore jobs - restore failure"
+
+customizable:
+  - evaluation_interval
+  - labels
+  - contact_point

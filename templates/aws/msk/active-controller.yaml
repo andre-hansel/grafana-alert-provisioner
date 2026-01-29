@@ -1,0 +1,36 @@
+id: msk-active-controller
+name: "MSK-Alerts-Active-Controller-Issue"
+description: "Alert when any MSK does not have exactly one active controller"
+service: msk
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Kafka
+    metric: ActiveControllerCount
+    statistic: Minimum
+    dimensions:
+      - Cluster Name
+    period: 60
+
+defaults:
+  threshold: 1
+  threshold_operator: neq
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: msk
+  category: availability
+
+annotations:
+  summary: "Controller issue on MSK {{ $labels.resource_name }}"
+  description: "MSK cluster {{ $labels.resource_name }} has {{ $value }} active controllers (expected 1) - cluster stability at risk"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

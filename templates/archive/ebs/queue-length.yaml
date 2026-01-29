@@ -1,0 +1,37 @@
+id: ebs-queue-length
+name: "EBS High Queue Length"
+description: "Alert when EBS volume IO queue is building up"
+service: ebs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: VolumeQueueLength
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: performance
+
+annotations:
+  summary: "High queue length on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} queue length is {{ $value }} - I/O queue building up"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

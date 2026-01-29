@@ -1,0 +1,37 @@
+id: rds-low-storage
+name: "RDS-Alerts-Low-Storage"
+description: "Alert when any RDS instance is running low on storage"
+service: rds
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/RDS
+    metric: FreeStorageSpace
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 5368709120  # 5GB in bytes
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: rds
+  category: storage
+
+annotations:
+  summary: "Low storage on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} has only {{ $value | humanize1024 }}B free storage"
+  runbook_url: "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

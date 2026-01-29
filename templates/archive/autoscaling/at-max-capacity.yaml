@@ -1,0 +1,38 @@
+id: autoscaling-at-max-capacity
+name: "Auto Scaling At Max Capacity"
+description: "Alert when ASG is at maximum capacity and cannot scale out"
+service: autoscaling
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AutoScaling
+    metric: GroupInServiceInstances
+    statistic: Maximum
+    dimensions:
+      - AutoScalingGroupName
+    period: 300
+
+defaults:
+  threshold: 10  # Should be set to max capacity
+  threshold_operator: gte
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: autoscaling
+  category: capacity
+
+annotations:
+  summary: "ASG {{ $labels.resource_name }} at max capacity"
+  description: "Auto Scaling Group {{ $labels.resource_name }} has {{ $value }} instances - at max capacity, cannot scale out"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

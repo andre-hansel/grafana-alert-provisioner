@@ -1,0 +1,37 @@
+id: stepfunctions-executions-timed-out
+name: "StepFunctions-Alerts-Executions-Timed-Out"
+description: "Alert when any Step Functions workflow executions time out"
+service: stepfunctions
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/States
+    metric: ExecutionsTimedOut
+    statistic: Sum
+    dimensions:
+      - StateMachineArn
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: stepfunctions
+  category: performance
+
+annotations:
+  summary: "Executions timed out for Step Functions {{ $labels.resource_name }}"
+  description: "Step Functions {{ $labels.resource_name }} has {{ $value }} timed out executions - workflows timing out"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

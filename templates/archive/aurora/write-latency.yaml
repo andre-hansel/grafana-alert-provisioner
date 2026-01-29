@@ -1,0 +1,37 @@
+id: aurora-write-latency
+name: "Aurora High Write Latency"
+description: "Alert when Aurora write latency is high"
+service: aurora
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: WriteLatency
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 20
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: performance
+
+annotations:
+  summary: "High write latency on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} write latency is {{ $value }}ms - I/O bottleneck"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

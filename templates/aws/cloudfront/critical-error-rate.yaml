@@ -1,0 +1,38 @@
+id: cloudfront-critical-error-rate
+name: "CloudFront-Alerts-Critical-Error-Rate"
+description: "Alert when any CloudFront has very high error rate"
+service: cloudfront
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/CloudFront
+    metric: TotalErrorRate
+    statistic: Average
+    dimensions:
+      - DistributionId
+      - Region
+    period: 300
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: cloudfront
+  category: performance
+
+annotations:
+  summary: "Critical error rate on CloudFront {{ $labels.resource_name }}"
+  description: "CloudFront distribution {{ $labels.resource_name }} error rate is {{ $value }}% - very high error rate"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

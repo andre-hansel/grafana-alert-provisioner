@@ -1,0 +1,38 @@
+id: ec2-high-cpu
+name: "EC2 High CPU Utilization"
+description: "Alert when EC2 instance CPU exceeds threshold"
+service: ec2
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/EC2
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - InstanceId
+    period: 300
+  prometheus:
+    metric: node_cpu_seconds_total
+    query: '100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle", instance=~"{{ $instance_id }}.*"}[5m])) * 100)'
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: ec2
+  category: performance
+
+annotations:
+  summary: "High CPU on {{ $labels.instance_id }}"
+  description: "CPU utilization is {{ $value }}% on instance {{ $labels.resource_name }}"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

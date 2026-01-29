@@ -1,0 +1,37 @@
+id: documentdb-disk-queue-depth
+name: "DocumentDB High Disk Queue Depth"
+description: "Alert when DocumentDB disk queue depth is high"
+service: documentdb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/DocDB
+    metric: DiskQueueDepth
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: documentdb
+  category: performance
+
+annotations:
+  summary: "High disk queue depth on DocumentDB {{ $labels.resource_name }}"
+  description: "DocumentDB cluster {{ $labels.resource_name }} disk queue depth is {{ $value }} - I/O bottleneck"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

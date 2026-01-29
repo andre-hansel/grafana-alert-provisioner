@@ -1,0 +1,38 @@
+id: aurora-buffer-cache-hit-ratio
+name: "Aurora Low Buffer Cache Hit Ratio"
+description: "Alert when Aurora buffer cache hit ratio is low"
+service: aurora
+severity: warning
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: BufferCacheHitRatio
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: performance
+
+annotations:
+  summary: "Low cache hit ratio on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} buffer cache hit ratio is {{ $value }}% - queries not hitting cache efficiently"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

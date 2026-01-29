@@ -1,0 +1,35 @@
+id: lambda-high-duration
+name: "Lambda High Duration"
+description: "Alert when Lambda function execution time is high"
+service: lambda
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/Lambda
+    metric: Duration
+    statistic: Average
+    dimensions:
+      - FunctionName
+    period: 300
+
+defaults:
+  threshold: 10000  # 10 seconds in ms
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: lambda
+  category: performance
+
+annotations:
+  summary: "High duration on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} average duration is {{ $value }}ms"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

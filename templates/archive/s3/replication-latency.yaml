@@ -1,0 +1,39 @@
+id: s3-replication-latency
+name: "S3 Replication Latency"
+description: "Alert when S3 cross-region replication is falling behind"
+service: s3
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/S3
+    metric: ReplicationLatency
+    statistic: Average
+    dimensions:
+      - SourceBucket
+      - DestinationBucket
+      - RuleId
+    period: 300
+
+defaults:
+  threshold: 900
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: s3
+  category: dr_availability
+
+annotations:
+  summary: "Replication lag on S3 {{ $labels.resource_name }}"
+  description: "S3 bucket {{ $labels.resource_name }} replication latency is {{ $value }}s - replication falling behind"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

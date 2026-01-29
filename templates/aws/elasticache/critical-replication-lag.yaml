@@ -1,0 +1,37 @@
+id: elasticache-critical-replication-lag
+name: "ElastiCache-Alerts-Critical-Replication-Lag"
+description: "Alert when any ElastiCache Redis replication lag is severe"
+service: elasticache
+severity: critical
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: ReplicationLag
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 1
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: availability
+
+annotations:
+  summary: "Critical replication lag on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} replication lag is {{ $value }}s - severe replication lag"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

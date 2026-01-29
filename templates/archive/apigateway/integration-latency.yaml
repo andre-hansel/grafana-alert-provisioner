@@ -1,0 +1,38 @@
+id: apigateway-integration-latency
+name: "API Gateway Integration Latency"
+description: "Alert when API Gateway backend integration is slow"
+service: apigateway
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ApiGateway
+    metric: IntegrationLatency
+    statistic: p99
+    dimensions:
+      - ApiName
+      - Stage
+    period: 300
+
+defaults:
+  threshold: 500
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: apigateway
+  category: performance
+
+annotations:
+  summary: "Slow backend integration on API Gateway {{ $labels.resource_name }}"
+  description: "API Gateway {{ $labels.resource_name }} integration latency is {{ $value }}ms - slow backend integration"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

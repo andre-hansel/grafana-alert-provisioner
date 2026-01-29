@@ -1,0 +1,36 @@
+id: redshift-maintenance-mode
+name: "Redshift-Alerts-Maintenance-Mode"
+description: "Alert when any Redshift cluster enters maintenance mode"
+service: redshift
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Redshift
+    metric: MaintenanceMode
+    statistic: Maximum
+    dimensions:
+      - ClusterIdentifier
+    period: 60
+
+defaults:
+  threshold: 1
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 1m
+
+labels:
+  service: redshift
+  category: dr_availability
+
+annotations:
+  summary: "Maintenance mode on Redshift {{ $labels.resource_name }}"
+  description: "Redshift cluster {{ $labels.resource_name }} is in maintenance mode"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,37 @@
+id: neptune-engine-uptime
+name: "Neptune Recent Restart"
+description: "Alert when Neptune engine has recently restarted"
+service: neptune
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Neptune
+    metric: EngineUptime
+    statistic: Minimum
+    dimensions:
+      - DBClusterIdentifier
+    period: 60
+
+defaults:
+  threshold: 300
+  threshold_operator: lt
+  evaluation_interval: 1m
+  for_duration: 1m
+
+labels:
+  service: neptune
+  category: dr_availability
+
+annotations:
+  summary: "Recent restart on Neptune {{ $labels.resource_name }}"
+  description: "Neptune cluster {{ $labels.resource_name }} engine uptime is {{ $value }}s - recent restart detected"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

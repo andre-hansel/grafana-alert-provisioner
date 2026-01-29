@@ -1,0 +1,37 @@
+id: nlb-tcp-target-resets
+name: "NLB-Alerts-High-Target-TCP-Resets"
+description: "Alert when any NLB has high target TCP reset rate"
+service: nlb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/NetworkELB
+    metric: TCP_Target_Reset_Count
+    statistic: Sum
+    dimensions:
+      - LoadBalancer
+    period: 300
+
+defaults:
+  threshold: 100
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: nlb
+  category: performance
+
+annotations:
+  summary: "High target resets on NLB {{ $labels.resource_name }}"
+  description: "NLB {{ $labels.resource_name }} has {{ $value }} target TCP resets - investigate backend"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

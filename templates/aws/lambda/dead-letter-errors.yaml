@@ -1,0 +1,37 @@
+id: lambda-dead-letter-errors
+name: "Lambda-Alerts-Dead-Letter-Errors"
+description: "Alert when any Lambda fails to deliver to dead letter queue"
+service: lambda
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Lambda
+    metric: DeadLetterErrors
+    statistic: Sum
+    dimensions:
+      - FunctionName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: availability
+
+annotations:
+  summary: "DLQ delivery failures on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} failed to deliver {{ $value }} messages to DLQ"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

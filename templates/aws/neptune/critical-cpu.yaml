@@ -1,0 +1,37 @@
+id: neptune-critical-cpu
+name: "Neptune-Alerts-Critical-CPU"
+description: "Alert when any Neptune database CPU is critical"
+service: neptune
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Neptune
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: neptune
+  category: performance
+
+annotations:
+  summary: "Critical CPU on Neptune {{ $labels.resource_name }}"
+  description: "Neptune cluster {{ $labels.resource_name }} CPU is {{ $value }}% - immediate scaling required"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

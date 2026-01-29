@@ -1,0 +1,36 @@
+id: alb-5xx-errors
+name: "ALB-Alerts-5xx-Errors"
+description: "Alert when any ALB is returning 5xx errors"
+service: alb
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ApplicationELB
+    metric: HTTPCode_ELB_5XX_Count
+    statistic: Sum
+    dimensions:
+      - LoadBalancer
+    period: 60
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 5m
+
+labels:
+  service: alb
+  category: errors
+
+annotations:
+  summary: "5xx errors on ALB {{ $labels.resource_name }}"
+  description: "ALB {{ $labels.resource_name }} has {{ $value }} 5xx errors"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

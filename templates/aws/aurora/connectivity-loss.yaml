@@ -1,0 +1,37 @@
+id: aurora-connectivity-loss
+name: "Aurora-Alerts-Connectivity-Loss"
+description: "Alert when Aurora cluster has database connection failures"
+service: rds
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: DatabaseConnections
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: lte
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: aurora
+  category: availability
+
+annotations:
+  summary: "Connectivity loss on Aurora {{ $labels.DBClusterIdentifier }}"
+  description: "Aurora cluster {{ $labels.DBClusterIdentifier }} has 0 database connections - possible connectivity issue"
+  runbook_url: "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Troubleshooting.html"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

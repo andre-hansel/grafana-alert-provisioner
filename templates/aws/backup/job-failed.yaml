@@ -1,0 +1,35 @@
+id: backup-job-failed
+name: "Backup-Alerts-Job-Failed"
+description: "Alert when any AWS Backup job fails"
+service: backup
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Backup
+    metric: NumberOfBackupJobsFailed
+    statistic: Sum
+    dimensions:
+      - BackupVaultName
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 0m
+
+labels:
+  service: backup
+  category: availability
+
+annotations:
+  summary: "Backup job failed for {{ $labels.resource_name }}"
+  description: "AWS Backup vault {{ $labels.resource_name }} has {{ $value }} failed backup jobs - data at risk"
+
+customizable:
+  - evaluation_interval
+  - labels
+  - contact_point

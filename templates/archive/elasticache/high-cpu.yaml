@@ -1,0 +1,35 @@
+id: elasticache-high-cpu
+name: "ElastiCache High CPU"
+description: "Alert when ElastiCache cluster CPU is high"
+service: elasticache
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/ElastiCache
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 10m
+
+labels:
+  service: elasticache
+  category: performance
+
+annotations:
+  summary: "High CPU on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache cluster {{ $labels.resource_name }} CPU utilization is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

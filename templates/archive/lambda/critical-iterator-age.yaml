@@ -1,0 +1,37 @@
+id: lambda-critical-iterator-age
+name: "Lambda Critical Stream Iterator Age"
+description: "Alert when Lambda stream processing is severely behind"
+service: lambda
+severity: critical
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Lambda
+    metric: IteratorAge
+    statistic: Maximum
+    dimensions:
+      - FunctionName
+    period: 300
+
+defaults:
+  threshold: 300000  # 5 minutes in milliseconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: performance
+
+annotations:
+  summary: "Critical stream lag on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} iterator age is {{ $value }}ms - severe stream processing lag"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

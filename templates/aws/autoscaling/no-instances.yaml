@@ -1,0 +1,36 @@
+id: autoscaling-no-instances
+name: "AutoScaling-Alerts-No-Instances-In-Service"
+description: "Alert when any ASG has no instances in service"
+service: autoscaling
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AutoScaling
+    metric: GroupInServiceInstances
+    statistic: Minimum
+    dimensions:
+      - AutoScalingGroupName
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: autoscaling
+  category: availability
+
+annotations:
+  summary: "No instances in service for ASG {{ $labels.resource_name }}"
+  description: "Auto Scaling Group {{ $labels.resource_name }} has no instances in service"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

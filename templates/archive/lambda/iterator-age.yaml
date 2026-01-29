@@ -1,0 +1,37 @@
+id: lambda-iterator-age
+name: "Lambda Stream Iterator Age"
+description: "Alert when Lambda stream processing is falling behind"
+service: lambda
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Lambda
+    metric: IteratorAge
+    statistic: Maximum
+    dimensions:
+      - FunctionName
+    period: 300
+
+defaults:
+  threshold: 60000  # 60 seconds in milliseconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: lambda
+  category: performance
+
+annotations:
+  summary: "Stream lag on Lambda {{ $labels.resource_name }}"
+  description: "Lambda function {{ $labels.resource_name }} iterator age is {{ $value }}ms - stream processing falling behind"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

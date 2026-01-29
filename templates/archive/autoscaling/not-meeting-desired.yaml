@@ -1,0 +1,38 @@
+id: autoscaling-not-meeting-desired
+name: "Auto Scaling Not Meeting Desired Capacity"
+description: "Alert when ASG is not meeting desired capacity"
+service: autoscaling
+severity: warning
+priority: 2
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AutoScaling
+    metric: GroupInServiceInstances
+    statistic: Average
+    dimensions:
+      - AutoScalingGroupName
+    period: 300
+
+defaults:
+  threshold: 1  # Should be set to desired capacity
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: autoscaling
+  category: availability
+
+annotations:
+  summary: "ASG {{ $labels.resource_name }} not meeting desired capacity"
+  description: "Auto Scaling Group {{ $labels.resource_name }} has {{ $value }} in-service instances - not meeting desired capacity"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

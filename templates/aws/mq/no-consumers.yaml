@@ -1,0 +1,36 @@
+id: mq-no-consumers
+name: "MQ-Alerts-No-Consumers"
+description: "Alert when any Amazon MQ has no active consumers"
+service: mq
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/AmazonMQ
+    metric: TotalConsumerCount
+    statistic: Minimum
+    dimensions:
+      - Broker
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: mq
+  category: availability
+
+annotations:
+  summary: "No consumers on Amazon MQ {{ $labels.resource_name }}"
+  description: "Amazon MQ broker {{ $labels.resource_name }} has no consumers - messages not being processed"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

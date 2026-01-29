@@ -1,0 +1,37 @@
+id: rds-read-latency
+name: "RDS High Read Latency"
+description: "Alert when RDS read operation latency is high"
+service: rds
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: ReadLatency
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 0.02  # 20ms in seconds
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: rds
+  category: performance
+
+annotations:
+  summary: "High read latency on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} read latency is {{ $value }}s - potential I/O bottleneck"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

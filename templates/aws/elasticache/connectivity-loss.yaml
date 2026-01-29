@@ -1,0 +1,36 @@
+id: elasticache-connectivity-loss
+name: "ElastiCache-Alerts-Connectivity-Loss"
+description: "Alert when any ElastiCache has zero connections"
+service: elasticache
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: CurrConnections
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: eq
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: elasticache
+  category: availability
+
+annotations:
+  summary: "Connectivity loss on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} has zero connections - complete connectivity loss"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

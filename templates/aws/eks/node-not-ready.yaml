@@ -1,0 +1,30 @@
+id: eks-node-not-ready
+name: "EKS-Alerts-Node-Not-Ready"
+description: "Alert when any EKS cluster has nodes in not-ready state"
+service: eks
+severity: critical
+
+data_sources:
+  prometheus:
+    metric: kube_node_status_condition
+    query: 'sum by(cluster, node) (kube_node_status_condition{condition="Ready", status="true"} == 0)'
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 5m
+
+labels:
+  service: eks
+  category: availability
+
+annotations:
+  summary: "Node not ready in EKS cluster {{ $labels.resource_name }}"
+  description: "EKS cluster {{ $labels.resource_name }} has nodes in not-ready state"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

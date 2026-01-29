@@ -1,0 +1,37 @@
+id: firehose-elasticsearch-delivery-failures
+name: "Firehose-Alerts-Elasticsearch-Delivery-Failures"
+description: "Alert when any Kinesis Firehose Elasticsearch delivery is failing"
+service: firehose
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Firehose
+    metric: DeliveryToElasticsearch.Success
+    statistic: Average
+    dimensions:
+      - DeliveryStreamName
+    period: 300
+
+defaults:
+  threshold: 100
+  threshold_operator: lt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: firehose
+  category: dr_availability
+
+annotations:
+  summary: "Elasticsearch delivery failures on Firehose {{ $labels.resource_name }}"
+  description: "Kinesis Firehose {{ $labels.resource_name }} Elasticsearch delivery success is {{ $value }}%"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

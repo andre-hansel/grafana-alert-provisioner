@@ -1,0 +1,38 @@
+id: nlb-unhealthy-hosts
+name: "NLB-Alerts-Unhealthy-Hosts"
+description: "Alert when any NLB has unhealthy targets"
+service: nlb
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/NetworkELB
+    metric: UnHealthyHostCount
+    statistic: Maximum
+    dimensions:
+      - LoadBalancer
+      - TargetGroup
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: nlb
+  category: availability
+
+annotations:
+  summary: "Unhealthy hosts on NLB {{ $labels.resource_name }}"
+  description: "NLB {{ $labels.resource_name }} has {{ $value }} unhealthy targets"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

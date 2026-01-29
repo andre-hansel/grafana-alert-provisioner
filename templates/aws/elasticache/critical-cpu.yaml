@@ -1,0 +1,36 @@
+id: elasticache-critical-cpu
+name: "ElastiCache-Alerts-Critical-CPU"
+description: "Alert when any ElastiCache CPU exceeds critical threshold"
+service: elasticache
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/ElastiCache
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - CacheClusterId
+    period: 300
+
+defaults:
+  threshold: 90
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: elasticache
+  category: performance
+
+annotations:
+  summary: "Critical CPU on ElastiCache {{ $labels.resource_name }}"
+  description: "ElastiCache {{ $labels.resource_name }} CPU is {{ $value }}% - immediate scaling required"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

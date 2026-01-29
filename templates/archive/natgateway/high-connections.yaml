@@ -1,0 +1,37 @@
+id: natgateway-high-connections
+name: "NAT Gateway High Active Connections"
+description: "Alert when NAT Gateway is approaching connection limit"
+service: natgateway
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/NATGateway
+    metric: ActiveConnectionCount
+    statistic: Maximum
+    dimensions:
+      - NatGatewayId
+    period: 300
+
+defaults:
+  threshold: 55000  # 100K max, warn at 55%
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: natgateway
+  category: capacity
+
+annotations:
+  summary: "High connections on NAT Gateway {{ $labels.resource_name }}"
+  description: "NAT Gateway {{ $labels.resource_name }} has {{ $value }} active connections - approaching 100K limit"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

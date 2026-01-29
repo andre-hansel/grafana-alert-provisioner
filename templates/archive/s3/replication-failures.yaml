@@ -1,0 +1,39 @@
+id: s3-replication-failures
+name: "S3 Replication Failures"
+description: "Alert when S3 replication operations fail"
+service: s3
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/S3
+    metric: OperationsFailedReplication
+    statistic: Sum
+    dimensions:
+      - SourceBucket
+      - DestinationBucket
+      - RuleId
+    period: 300
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: s3
+  category: dr_availability
+
+annotations:
+  summary: "Replication failures on S3 {{ $labels.resource_name }}"
+  description: "S3 bucket {{ $labels.resource_name }} has {{ $value }} failed replication operations"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

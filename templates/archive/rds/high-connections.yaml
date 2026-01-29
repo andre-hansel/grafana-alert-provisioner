@@ -1,0 +1,35 @@
+id: rds-high-connections
+name: "RDS High Database Connections"
+description: "Alert when RDS instance has too many connections"
+service: rds
+severity: warning
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/RDS
+    metric: DatabaseConnections
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 100
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: rds
+  category: connections
+
+annotations:
+  summary: "High connections on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} has {{ $value }} active connections"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

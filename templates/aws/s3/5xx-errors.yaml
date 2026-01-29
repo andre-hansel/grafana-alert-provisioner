@@ -1,0 +1,36 @@
+id: s3-5xx-errors
+name: "S3-Alerts-5xx-Errors"
+description: "Alert when any S3 bucket is returning 5xx errors (requires request metrics enabled)"
+service: s3
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/S3
+    metric: 5xxErrors
+    statistic: Sum
+    dimensions:
+      - BucketName
+    period: 60
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 5m
+
+labels:
+  service: s3
+  category: errors
+
+annotations:
+  summary: "5xx errors on S3 bucket {{ $labels.resource_name }}"
+  description: "S3 bucket {{ $labels.resource_name }} has {{ $value }} 5xx errors"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

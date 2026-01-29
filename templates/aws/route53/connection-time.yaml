@@ -1,0 +1,37 @@
+id: route53-connection-time
+name: "Route53-Alerts-Slow-Connection-Time"
+description: "Alert when any Route53 health check connection time is slow"
+service: route53
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Route53
+    metric: ConnectionTime
+    statistic: Average
+    dimensions:
+      - HealthCheckId
+    period: 300
+
+defaults:
+  threshold: 1000
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: route53
+  category: performance
+
+annotations:
+  summary: "Slow connection time on Route53 {{ $labels.resource_name }}"
+  description: "Route53 health check {{ $labels.resource_name }} connection time is {{ $value }}ms - slow endpoint response"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

@@ -1,0 +1,37 @@
+id: redshift-critical-disk-usage
+name: "Redshift-Alerts-Critical-Disk-Usage"
+description: "Alert when any Redshift disk usage is critical"
+service: redshift
+severity: critical
+priority: 1
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/Redshift
+    metric: PercentageDiskSpaceUsed
+    statistic: Average
+    dimensions:
+      - ClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 90
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: redshift
+  category: capacity
+
+annotations:
+  summary: "Critical disk usage on Redshift {{ $labels.resource_name }}"
+  description: "Redshift cluster {{ $labels.resource_name }} disk usage is {{ $value }}% - queries may fail"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

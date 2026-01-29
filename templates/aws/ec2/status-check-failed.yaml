@@ -1,0 +1,35 @@
+id: ec2-status-check-failed
+name: "EC2-Alerts-Status-Check-Failed"
+description: "Alert when any EC2 instance fails status check"
+service: ec2
+severity: critical
+
+data_sources:
+  cloudwatch:
+    namespace: AWS/EC2
+    metric: StatusCheckFailed
+    statistic: Maximum
+    dimensions:
+      - InstanceId
+    period: 60
+
+defaults:
+  threshold: 0
+  threshold_operator: gt
+  evaluation_interval: 1m
+  for_duration: 2m
+
+labels:
+  service: ec2
+  category: availability
+
+annotations:
+  summary: "Status check failed on {{ $labels.instance_id }}"
+  description: "EC2 instance {{ $labels.resource_name }} has failed status check"
+  runbook_url: "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-system-instance-status-check.html"
+
+customizable:
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

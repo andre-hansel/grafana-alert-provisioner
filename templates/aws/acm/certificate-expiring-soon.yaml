@@ -1,0 +1,36 @@
+id: acm-certificate-expiring-soon
+name: "ACM-Alerts-Certificate-Expiring-Soon"
+description: "Alert when any ACM certificate is expiring within 30 days"
+service: acm
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/CertificateManager
+    metric: DaysToExpiry
+    statistic: Minimum
+    dimensions:
+      - CertificateArn
+    period: 86400  # 24 hours
+
+defaults:
+  threshold: 30
+  threshold_operator: lt
+  evaluation_interval: 1h
+  for_duration: 0m
+
+labels:
+  service: acm
+  category: availability
+
+annotations:
+  summary: "Certificate expiring soon for {{ $labels.resource_name }}"
+  description: "ACM certificate {{ $labels.resource_name }} expires in {{ $value }} days - plan renewal"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - labels
+  - contact_point
+  - severity

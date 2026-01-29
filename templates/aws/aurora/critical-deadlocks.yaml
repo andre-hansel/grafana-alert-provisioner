@@ -1,0 +1,37 @@
+id: aurora-critical-deadlocks
+name: "Aurora-Alerts-Critical-Deadlocks"
+description: "Alert when any Aurora has high deadlock rate"
+service: aurora
+severity: critical
+priority: 3
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: Deadlocks
+    statistic: Sum
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 10
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: performance
+
+annotations:
+  summary: "Critical deadlocks on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} has {{ $value }} deadlocks - review transactions"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point

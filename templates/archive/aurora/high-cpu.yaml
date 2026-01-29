@@ -1,0 +1,37 @@
+id: aurora-high-cpu
+name: "Aurora High CPU Utilization"
+description: "Alert when Aurora database CPU exceeds threshold"
+service: aurora
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - DBClusterIdentifier
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: aurora
+  category: performance
+
+annotations:
+  summary: "High CPU on Aurora {{ $labels.resource_name }}"
+  description: "Aurora cluster {{ $labels.resource_name }} CPU is {{ $value }}% - consider scaling or query optimization"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

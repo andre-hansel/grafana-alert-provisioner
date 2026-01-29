@@ -1,0 +1,37 @@
+id: ebs-consumed-iops
+name: "EBS-Alerts-High-Consumed-IOPS"
+description: "Alert when any EBS provisioned IOPS consumption is high (io1/io2)"
+service: ebs
+severity: warning
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/EBS
+    metric: VolumeConsumedReadWriteOps
+    statistic: Average
+    dimensions:
+      - VolumeId
+    period: 300
+
+defaults:
+  threshold: 80
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: ebs
+  category: capacity
+
+annotations:
+  summary: "High IOPS consumption on EBS {{ $labels.resource_name }}"
+  description: "EBS volume {{ $labels.resource_name }} is using {{ $value }}% of provisioned IOPS - approaching limit"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
+  - severity

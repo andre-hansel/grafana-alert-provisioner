@@ -1,0 +1,36 @@
+id: rds-critical-cpu
+name: "RDS-Alerts-Critical-CPU"
+description: "Alert when any RDS instance CPU exceeds critical threshold"
+service: rds
+severity: critical
+
+data_sources:
+  cloudwatch:
+    type: cloudwatch
+    namespace: AWS/RDS
+    metric: CPUUtilization
+    statistic: Average
+    dimensions:
+      - DBInstanceIdentifier
+    period: 300
+
+defaults:
+  threshold: 95
+  threshold_operator: gt
+  evaluation_interval: 5m
+  for_duration: 5m
+
+labels:
+  service: rds
+  category: performance
+
+annotations:
+  summary: "Critical CPU on RDS {{ $labels.resource_name }}"
+  description: "RDS instance {{ $labels.resource_name }} CPU is {{ $value }}% - immediate scaling required"
+
+customizable:
+  - threshold
+  - evaluation_interval
+  - for_duration
+  - labels
+  - contact_point
