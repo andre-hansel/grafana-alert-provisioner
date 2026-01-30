@@ -1,16 +1,17 @@
 {
-  "name": "grafana-alert-provisioner",
+  "name": "grafana-provisioner",
   "version": "1.0.0",
-  "description": "AWS-to-Grafana Alert Provisioner - Discover AWS infrastructure and generate Grafana alert scripts",
+  "description": "AWS-to-Grafana Provisioner - Discover AWS infrastructure and generate Grafana alert/dashboard scripts",
   "type": "module",
   "main": "src/index.ts",
   "bin": {
-    "grafana-alert-provisioner": "./src/index.ts"
+    "grafana-provisioner": "./src/index.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
-    "dashboards": "bun run src/cli/dashboard-provisioner.ts",
+    "dashboards": "bun run src/index.ts --mode=dashboards",
+    "alerts": "bun run src/index.ts --mode=alerts",
     "templates": "bun run src/cli/manage-templates.ts",
     "archive": "bun run scripts/archive-output.ts",
     "test": "bun test",

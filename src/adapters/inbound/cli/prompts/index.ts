@@ -5,3 +5,7 @@ export { runTemplateMatchingPrompt, type TemplateMatchingResult } from './templa
 export { runAlertCustomizationPrompt, type AlertCustomizationOptions, type AlertCustomizationResult } from './alert-customization.js';
 export { runPreviewPrompt, type PreviewResult } from './preview.js';
 export { runScriptGenerationPrompt, type ScriptGenerationResult } from './script-generation.js';
+
+// Dashboard prompts
+export { runDashboardSelectionPrompt, type DashboardSelectionOptions } from './dashboard-selection.js';
+export { runDashboardPreviewPrompt, type DashboardPreviewOptions } from './dashboard-preview.js';
