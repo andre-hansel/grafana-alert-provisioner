@@ -10,6 +10,7 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
+    "dashboards": "bun run src/cli/dashboard-provisioner.ts",
     "templates": "bun run src/cli/manage-templates.ts",
     "archive": "bun run scripts/archive-output.ts",
     "test": "bun test",
