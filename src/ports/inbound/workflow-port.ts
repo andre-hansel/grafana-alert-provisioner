@@ -4,6 +4,7 @@ import type { TemplateMatch, AlertTemplate } from '../../domain/entities/templat
 import type { AlertRule, PendingAlert } from '../../domain/entities/alert.js';
 import type { GeneratedScript } from '../outbound/script-generator-port.js';
 import type { GrafanaContactPoint, GrafanaDataSource } from '../outbound/grafana-port.js';
+import type { AlertSelectionSummary } from '../../domain/services/cloudwatch-validator.js';
 
 export interface CustomerSetupResult {
   readonly customer: Customer;
@@ -19,6 +20,7 @@ export interface AwsDiscoveryResult {
 export interface TemplateMatchingResult {
   readonly matches: readonly TemplateMatch[];
   readonly confirmed: boolean;
+  readonly alertSelectionSummary?: AlertSelectionSummary;
 }
 
 export interface AlertCustomizationResult {

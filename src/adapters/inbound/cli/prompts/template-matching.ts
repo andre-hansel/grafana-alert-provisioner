@@ -12,6 +12,12 @@ import type {
 } from '../../../../domain/entities/aws-resource.js';
 import type { AlertTemplate, TemplateMatch } from '../../../../domain/entities/template.js';
 import { createTemplateMatcher } from '../../../../domain/services/template-matcher.js';
+import type {
+  AlertSelectionSummary,
+  ImplementedAlert,
+  SkippedAlert,
+  ConditionalSkippedAlert,
+} from '../../../../domain/services/cloudwatch-validator.js';
 
 // Feature flags detected from resources
 interface DetectedFeatures {
@@ -26,6 +32,7 @@ interface DetectedFeatures {
 export interface TemplateMatchingResult {
   matches: readonly TemplateMatch[];
   confirmed: boolean;
+  alertSelectionSummary?: AlertSelectionSummary;
 }
 
 export async function runTemplateMatchingPrompt(
@@ -47,7 +54,30 @@ export async function runTemplateMatchingPrompt(
       );
     }
 
-    return { matches: [], confirmed: false };
+    // Build alert selection summary for templates with no matching resources
+    const noMatchingResources: SkippedAlert[] = result.unmatchedTemplates.map(t => ({
+      template: t,
+      reason: 'no_matching_resources' as const,
+      reasonDetail: `No ${t.service} resources discovered`,
+    }));
+
+    const alertSelectionSummary: AlertSelectionSummary = {
+      implementedAlerts: [],
+      skippedAlerts: {
+        noMatchingResources,
+        featureNotDetected: [],
+        tuningRequired: [],
+        userDeselected: [],
+      },
+      totals: {
+        implementedCount: 0,
+        skippedCount: noMatchingResources.length,
+        resourcesCovered: 0,
+        regionsCount: 0,
+      },
+    };
+
+    return { matches: [], confirmed: false, alertSelectionSummary };
   }
 
   // Detect features from resources
@@ -87,10 +117,10 @@ export async function runTemplateMatchingPrompt(
   const allSelected = await selectTemplates(result.matches, matchesByService, features);
 
   if (!allSelected.confirmed) {
-    return { matches: [], confirmed: false };
+    return { matches: [], confirmed: false, alertSelectionSummary: allSelected.alertSelectionSummary };
   }
 
-  return { matches: allSelected.selectedMatches, confirmed: true };
+  return { matches: allSelected.selectedMatches, confirmed: true, alertSelectionSummary: allSelected.alertSelectionSummary };
 }
 
 function detectFeatures(resources: DiscoveredResources): DetectedFeatures {
@@ -359,6 +389,7 @@ function getFeatureText(service: AwsServiceType, features: DetectedFeatures): st
 interface SelectionResult {
   selectedMatches: readonly TemplateMatch[];
   confirmed: boolean;
+  alertSelectionSummary: AlertSelectionSummary;
 }
 
 // Core templates - always selected by default (outages, critical failures)
@@ -679,7 +710,14 @@ async function selectTemplates(
     });
 
     if (p.isCancel(selected)) {
-      return { selectedMatches: [], confirmed: false };
+      // Build empty alert selection summary for cancelled selection
+      const emptyAlertSelectionSummary = buildAlertSelectionSummary(
+        allMatches,
+        new Set<string>(),
+        templatesByService,
+        features
+      );
+      return { selectedMatches: [], confirmed: false, alertSelectionSummary: emptyAlertSelectionSummary };
     }
 
     for (const id of selected) {
@@ -690,6 +728,14 @@ async function selectTemplates(
   // Filter matches to only include selected templates
   const selectedMatches = allMatches.filter(m =>
     selectedTemplateIds.has(m.template.id)
+  );
+
+  // Build AlertSelectionSummary
+  const alertSelectionSummary = buildAlertSelectionSummary(
+    allMatches,
+    selectedTemplateIds,
+    templatesByService,
+    features
   );
 
   // Log template selection
@@ -726,6 +772,12 @@ async function selectTemplates(
       selectedTemplateIds: Array.from(selectedTemplateIds),
       totalAlertRules: selectedMatches.length,
     },
+    alertSelectionSummary: {
+      implementedCount: alertSelectionSummary.totals.implementedCount,
+      skippedCount: alertSelectionSummary.totals.skippedCount,
+      resourcesCovered: alertSelectionSummary.totals.resourcesCovered,
+      regionsCount: alertSelectionSummary.totals.regionsCount,
+    },
     debugLog: debugLog,
   });
   p.log.info(`Selection logged to ${logger.getLogsDir()}`);
@@ -738,8 +790,177 @@ async function selectTemplates(
   });
 
   if (p.isCancel(confirmed)) {
-    return { selectedMatches: [], confirmed: false };
+    return { selectedMatches: [], confirmed: false, alertSelectionSummary };
   }
 
-  return { selectedMatches, confirmed };
+  return { selectedMatches, confirmed, alertSelectionSummary };
+}
+
+/**
+ * Build the AlertSelectionSummary from selection results
+ */
+function buildAlertSelectionSummary(
+  allMatches: readonly TemplateMatch[],
+  selectedTemplateIds: Set<string>,
+  templatesByService: Map<AwsServiceType, AlertTemplate[]>,
+  features: DetectedFeatures
+): AlertSelectionSummary {
+  const implementedAlerts: ImplementedAlert[] = [];
+  const skippedNoResources: SkippedAlert[] = [];
+  const skippedFeatureNotDetected: ConditionalSkippedAlert[] = [];
+  const skippedTuningRequired: SkippedAlert[] = [];
+  const skippedUserDeselected: SkippedAlert[] = [];
+
+  // Track all templates that have matches
+  const templatesWithMatches = new Set<string>();
+  for (const match of allMatches) {
+    templatesWithMatches.add(match.template.id);
+  }
+
+  // Process templates that have matches
+  for (const [_service, templates] of templatesByService) {
+    for (const template of templates) {
+      if (selectedTemplateIds.has(template.id)) {
+        // Template is selected - build implemented alert
+        const matches = allMatches.filter(m => m.template.id === template.id);
+        const resourcesByRegion = new Map<string, string[]>();
+        let totalResourceCount = 0;
+
+        for (const match of matches) {
+          const region = match.region;
+          const existingResources = resourcesByRegion.get(region) ?? [];
+          const newResources = match.resources.map(r => r.name);
+          resourcesByRegion.set(region, [...existingResources, ...newResources]);
+          totalResourceCount += match.resources.length;
+        }
+
+        implementedAlerts.push({
+          template,
+          resourcesByRegion,
+          totalResourceCount,
+        });
+      } else {
+        // Template not selected - determine why
+        const conditionalFeature = CONDITIONAL_TEMPLATES[template.id];
+        const isTuning = TUNING_REQUIRED_TEMPLATES.has(template.id);
+
+        if (conditionalFeature && !features[conditionalFeature]) {
+          // Feature not detected
+          skippedFeatureNotDetected.push({
+            template,
+            reason: 'feature_not_detected',
+            requiredFeature: getFeatureLabel(conditionalFeature),
+            featureDetected: false,
+          });
+        } else if (isTuning) {
+          // Tuning required
+          skippedTuningRequired.push({
+            template,
+            reason: 'tuning_required',
+            reasonDetail: getTuningReasonDetail(template.id),
+          });
+        } else {
+          // User deselected
+          skippedUserDeselected.push({
+            template,
+            reason: 'user_deselected',
+          });
+        }
+      }
+    }
+  }
+
+  // Calculate totals
+  const allRegions = new Set<string>();
+  const allResources = new Set<string>();
+  for (const alert of implementedAlerts) {
+    for (const [region, resources] of alert.resourcesByRegion) {
+      allRegions.add(region);
+      for (const r of resources) {
+        allResources.add(`${region}:${r}`);
+      }
+    }
+  }
+
+  const totalSkipped = skippedNoResources.length + skippedFeatureNotDetected.length +
+    skippedTuningRequired.length + skippedUserDeselected.length;
+
+  return {
+    implementedAlerts,
+    skippedAlerts: {
+      noMatchingResources: skippedNoResources,
+      featureNotDetected: skippedFeatureNotDetected,
+      tuningRequired: skippedTuningRequired,
+      userDeselected: skippedUserDeselected,
+    },
+    totals: {
+      implementedCount: implementedAlerts.length,
+      skippedCount: totalSkipped,
+      resourcesCovered: allResources.size,
+      regionsCount: allRegions.size,
+    },
+  };
+}
+
+/**
+ * Get human-readable label for a feature key
+ */
+function getFeatureLabel(featureKey: keyof DetectedFeatures): string {
+  switch (featureKey) {
+    case 'rdsHasReplicas':
+      return 'RDS read replicas';
+    case 'auroraHasServerless':
+      return 'Aurora Serverless v2';
+    case 'lambdaHasDlq':
+      return 'Lambda DLQ configuration';
+    case 'elasticacheHasReplication':
+      return 'ElastiCache replication';
+    case 'ecsHasAutoScaling':
+      return 'ECS auto-scaling';
+    case 'sqsHasDlq':
+      return 'SQS dead letter queues';
+    default:
+      return featureKey;
+  }
+}
+
+/**
+ * Get reason detail for tuning-required templates
+ */
+function getTuningReasonDetail(templateId: string): string {
+  const reasons: Record<string, string> = {
+    'alb-4xx-errors': 'Client errors need baseline',
+    'apigateway-4xx-errors': 'Client errors need baseline',
+    's3-4xx-errors': 'Client errors need baseline',
+    'cloudfront-critical-error-rate': 'Error rate needs baseline',
+    'nlb-tcp-client-resets': 'TCP resets need baseline',
+    'nlb-tcp-target-resets': 'TCP resets need baseline',
+    'nlb-tcp-elb-resets': 'TCP resets need baseline',
+    'ecs-running-task-count': 'Needs per-service desired count',
+    'ecs-pending-task-count': 'Needs per-service desired count',
+    'elasticache-critical-evictions': 'Acceptable levels vary by app',
+    'alb-rejected-connections': 'Needs traffic baseline',
+    'acm-certificate-expiring-soon': 'Depends on cert management process',
+    'aurora-blocked-transactions': 'Needs transaction baseline',
+    'aurora-critical-deadlocks': 'Needs deadlock baseline',
+    'documentdb-cursors-timed-out': 'Needs cursor timeout baseline',
+    'backup-copy-job-failed': 'Depends on backup strategy',
+    'backup-restore-job-failed': 'Depends on backup strategy',
+    'ebs-consumed-iops': 'Workload dependent',
+    'ebs-critical-queue-length': 'Workload dependent',
+    'ebs-throughput-percentage': 'Workload dependent',
+    'eventbridge-dead-letter-invocations': 'Depends on DLQ configuration',
+    'firehose-elasticsearch-delivery-failures': 'Destination-specific',
+    'firehose-redshift-delivery-failures': 'Destination-specific',
+    'msk-active-controller': 'Needs understanding of controller state',
+    'natgateway-critical-connections': 'Needs connection baseline',
+    'redshift-maintenance-mode': 'Expected during maintenance windows',
+    'route53-connection-time': 'Needs timing baseline',
+    'route53-critical-health-check-degraded': 'Needs timing baseline',
+    'route53-ssl-handshake-time': 'Needs timing baseline',
+    'route53-time-to-first-byte': 'Needs timing baseline',
+    'stepfunctions-executions-timed-out': 'Depends on expected duration',
+    'sqs-message-age': 'Threshold varies by use case',
+  };
+  return reasons[templateId] ?? 'Requires environment-specific threshold';
 }

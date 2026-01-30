@@ -8,6 +8,8 @@
 
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
+import * as fs from 'fs/promises';
+import { join } from 'path';
 
 import { loadConfig, validateConfig } from './config/index.js';
 import { createAwsDiscoveryAdapter } from './adapters/outbound/aws/index.js';
@@ -18,7 +20,7 @@ import { createTuiWorkflow } from './adapters/inbound/cli/index.js';
 import { runGrafanaSetupPrompt } from './adapters/inbound/cli/prompts/index.js';
 import { runCloudWatchValidation } from './adapters/inbound/cli/prompts/cloudwatch-validation.js';
 import type { DiscoveredResources } from './domain/entities/aws-resource.js';
-import type { ValidationSummary } from './domain/services/cloudwatch-validator.js';
+import { generateValidationReport, type ValidationSummary, type AlertSelectionSummary } from './domain/services/cloudwatch-validator.js';
 import type { Customer } from './domain/entities/customer.js';
 import type { TemplateMatch, AlertTemplate } from './domain/entities/template.js';
 import type { PendingAlert, AlertRule } from './domain/entities/alert.js';
@@ -36,6 +38,7 @@ interface WorkflowState {
   validationSummary?: ValidationSummary;
   templates?: readonly AlertTemplate[];
   matches?: readonly TemplateMatch[];
+  alertSelectionSummary?: AlertSelectionSummary;
   pendingAlerts?: readonly PendingAlert[];
   alerts?: readonly AlertRule[];
 }
@@ -230,6 +233,7 @@ async function main(): Promise<void> {
             // 'retry' stays on matching
           } else {
             state.matches = result.matches;
+            state.alertSelectionSummary = result.alertSelectionSummary;
             currentStep = 'customization';
           }
           break;
@@ -302,6 +306,35 @@ async function main(): Promise<void> {
             state.customer,
             state.grafanaUrl ?? config.grafanaUrl
           );
+
+          // Generate complete validation report with alert tracking
+          if (state.validationSummary && state.alertSelectionSummary) {
+            const saveReport = await p.confirm({
+              message: 'Save complete validation report (includes resource exclusions and alert tracking)?',
+              initialValue: true,
+            });
+
+            if (!p.isCancel(saveReport) && saveReport) {
+              const now = new Date();
+              const dateStr = now.toISOString().split('T')[0]; // 2024-01-29
+              const safeCustomerName = state.customer.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+              const reportFilename = `${safeCustomerName}-validation-${dateStr}.md`;
+              const reportPath = join(config.outputPath, reportFilename);
+              const report = generateValidationReport(
+                state.validationSummary,
+                state.customer.name,
+                state.alertSelectionSummary
+              );
+              try {
+                // Ensure output directory exists
+                await fs.mkdir(config.outputPath, { recursive: true });
+                await fs.writeFile(reportPath, report, 'utf-8');
+                p.log.success(`Validation report saved to ${reportPath}`);
+              } catch (error) {
+                p.log.error(`Failed to save report: ${error}`);
+              }
+            }
+          }
 
           console.log('');
           p.outro(pc.green(`Successfully generated: ${scriptResult.outputPath}`));

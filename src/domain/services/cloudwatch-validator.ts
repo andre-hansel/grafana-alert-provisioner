@@ -12,6 +12,7 @@ import type {
   S3Resource,
   ElastiCacheResource,
 } from '../entities/aws-resource.js';
+import type { AlertTemplate } from '../entities/template.js';
 
 export interface CloudWatchConfig {
   namespace: string;
@@ -106,6 +107,61 @@ export interface ValidationSummary {
   readonly hasIssues: boolean;
   readonly hasCriticalIssues: boolean; // When discovered > 0 but cloudwatch = 0
   readonly warnings: readonly LoadBalancerWarning[]; // Included resources with warnings
+}
+
+/**
+ * Reason why a template was skipped
+ */
+export type SkippedAlertReason =
+  | 'no_matching_resources'  // Template available but no resources discovered for that service
+  | 'feature_not_detected'   // Conditional template but required feature not found
+  | 'tuning_required'        // Template requires environment-specific baseline
+  | 'user_deselected';       // User chose not to deploy this template
+
+/**
+ * An alert template that will be deployed
+ */
+export interface ImplementedAlert {
+  readonly template: AlertTemplate;
+  readonly resourcesByRegion: Map<string, string[]>; // region -> resource names
+  readonly totalResourceCount: number;
+}
+
+/**
+ * An alert template that was skipped
+ */
+export interface SkippedAlert {
+  readonly template: AlertTemplate;
+  readonly reason: SkippedAlertReason;
+  readonly reasonDetail?: string;
+}
+
+/**
+ * A conditional alert template that was skipped because feature wasn't detected
+ */
+export interface ConditionalSkippedAlert extends SkippedAlert {
+  readonly reason: 'feature_not_detected';
+  readonly requiredFeature: string;
+  readonly featureDetected: false;
+}
+
+/**
+ * Summary of which alerts will be deployed and which were skipped
+ */
+export interface AlertSelectionSummary {
+  readonly implementedAlerts: readonly ImplementedAlert[];
+  readonly skippedAlerts: {
+    readonly noMatchingResources: readonly SkippedAlert[];
+    readonly featureNotDetected: readonly ConditionalSkippedAlert[];
+    readonly tuningRequired: readonly SkippedAlert[];
+    readonly userDeselected: readonly SkippedAlert[];
+  };
+  readonly totals: {
+    readonly implementedCount: number;
+    readonly skippedCount: number;
+    readonly resourcesCovered: number;
+    readonly regionsCount: number;
+  };
 }
 
 /**
@@ -565,9 +621,14 @@ export function summarizeValidation(results: readonly ServiceValidationResult[])
 
 /**
  * Generate a documentation-friendly report of validation results
- * Focuses on exclusions and the rationale for each exclusion decision
+ * Focuses on exclusions and the rationale for each exclusion decision.
+ * When alertSelection is provided, also includes alert tracking sections.
  */
-export function generateValidationReport(summary: ValidationSummary, customerName?: string): string {
+export function generateValidationReport(
+  summary: ValidationSummary,
+  customerName?: string,
+  alertSelection?: AlertSelectionSummary
+): string {
   const lines: string[] = [];
   const now = new Date();
   const timestamp = now.toLocaleDateString('en-US', {
@@ -588,11 +649,23 @@ export function generateValidationReport(summary: ValidationSummary, customerNam
 
   // Summary
   lines.push('## Summary');
+  lines.push('');
+  lines.push('### Resources');
   lines.push(`- Total Discovered: ${summary.totalDiscovered}`);
   lines.push(`- Included in Monitoring: ${summary.totalMatched}`);
   lines.push(`- Excluded from Monitoring: ${summary.totalUnmatched}`);
   if (summary.warnings.length > 0) {
     lines.push(`- Warnings: ${summary.warnings.length}`);
+  }
+
+  // Add alert summary if provided
+  if (alertSelection) {
+    lines.push('');
+    lines.push('### Alerts');
+    lines.push(`- Alert Rules to Deploy: ${alertSelection.totals.implementedCount}`);
+    lines.push(`- Alert Rules Skipped: ${alertSelection.totals.skippedCount}`);
+    lines.push(`- Resources Covered: ${alertSelection.totals.resourcesCovered}`);
+    lines.push(`- Regions: ${alertSelection.totals.regionsCount}`);
   }
   lines.push('');
 
@@ -652,6 +725,13 @@ export function generateValidationReport(summary: ValidationSummary, customerNam
   if (allDiagnostics.length === 0) {
     lines.push('*No resources were excluded - all discovered resources have CloudWatch metrics.*');
     lines.push('');
+
+    // Add alert sections if alertSelection is provided (even when no exclusions)
+    if (alertSelection) {
+      lines.push(...generateImplementedAlertsSection(alertSelection));
+      lines.push(...generateSkippedAlertsSection(alertSelection));
+    }
+
     return lines.join('\n');
   }
 
@@ -919,6 +999,12 @@ export function generateValidationReport(summary: ValidationSummary, customerNam
   lines.push(`| **Total Excluded** | **${summary.totalUnmatched}** | |`);
   lines.push('');
 
+  // Add alert sections if alertSelection is provided
+  if (alertSelection) {
+    lines.push(...generateImplementedAlertsSection(alertSelection));
+    lines.push(...generateSkippedAlertsSection(alertSelection));
+  }
+
   return lines.join('\n');
 }
 
@@ -1007,4 +1093,173 @@ export function filterValidatedResources(
     s3: filterByValidation(resources.s3, 's3'),
     sqs: filterByValidation(resources.sqs, 'sqs'),
   };
+}
+
+/**
+ * Generate the "Implemented Alerts" section of the report
+ */
+function generateImplementedAlertsSection(alertSelection: AlertSelectionSummary): string[] {
+  const lines: string[] = [];
+
+  if (alertSelection.implementedAlerts.length === 0) {
+    lines.push('## Implemented Alerts');
+    lines.push('');
+    lines.push('*No alerts will be deployed.*');
+    lines.push('');
+    return lines;
+  }
+
+  lines.push('## Implemented Alerts');
+  lines.push('');
+  lines.push('The following alert rules will be deployed to Grafana, grouped by service.');
+  lines.push('');
+
+  // Group implemented alerts by service
+  const byService = new Map<AwsServiceType, ImplementedAlert[]>();
+  for (const alert of alertSelection.implementedAlerts) {
+    const service = alert.template.service;
+    const existing = byService.get(service) ?? [];
+    byService.set(service, [...existing, alert]);
+  }
+
+  // Sort services alphabetically
+  const sortedServices = Array.from(byService.keys()).sort();
+
+  for (const service of sortedServices) {
+    const alerts = byService.get(service)!;
+    const totalResources = new Set<string>();
+    for (const alert of alerts) {
+      for (const resources of alert.resourcesByRegion.values()) {
+        for (const r of resources) {
+          totalResources.add(r);
+        }
+      }
+    }
+
+    lines.push(`### ${service.toUpperCase()} (${alerts.length} alert${alerts.length === 1 ? '' : 's'}, ${totalResources.size} resource${totalResources.size === 1 ? '' : 's'})`);
+    lines.push('');
+
+    for (const alert of alerts) {
+      lines.push(`**${alert.template.name}** (${alert.template.severity})`);
+
+      // Show resources by region
+      const sortedRegions = Array.from(alert.resourcesByRegion.keys()).sort();
+      for (const region of sortedRegions) {
+        const resources = alert.resourcesByRegion.get(region)!;
+        const resourceList = resources.map(r => `\`${r}\``).join(', ');
+        lines.push(`- ${region}: ${resourceList}`);
+      }
+      lines.push('');
+    }
+  }
+
+  // Summary line
+  const regions = new Set<string>();
+  for (const alert of alertSelection.implementedAlerts) {
+    for (const region of alert.resourcesByRegion.keys()) {
+      regions.add(region);
+    }
+  }
+
+  lines.push(`**Summary: ${alertSelection.totals.implementedCount} alert rule${alertSelection.totals.implementedCount === 1 ? '' : 's'} covering ${alertSelection.totals.resourcesCovered} resource${alertSelection.totals.resourcesCovered === 1 ? '' : 's'} across ${regions.size} region${regions.size === 1 ? '' : 's'}**`);
+  lines.push('');
+
+  return lines;
+}
+
+/**
+ * Generate the "Skipped Alerts" section of the report
+ */
+function generateSkippedAlertsSection(alertSelection: AlertSelectionSummary): string[] {
+  const lines: string[] = [];
+
+  const { noMatchingResources, featureNotDetected, tuningRequired, userDeselected } = alertSelection.skippedAlerts;
+  const totalSkipped = noMatchingResources.length + featureNotDetected.length + tuningRequired.length + userDeselected.length;
+
+  if (totalSkipped === 0) {
+    return lines;
+  }
+
+  lines.push('## Skipped Alerts');
+  lines.push('');
+  lines.push('The following alert templates were NOT deployed.');
+  lines.push('');
+
+  // No Matching Resources
+  if (noMatchingResources.length > 0) {
+    lines.push('### No Matching Resources');
+    lines.push('');
+    lines.push('Templates available but no resources discovered for that service.');
+    lines.push('');
+    lines.push('| Template | Service | Severity | Reason |');
+    lines.push('|----------|---------|----------|--------|');
+    for (const skipped of noMatchingResources) {
+      lines.push(`| ${skipped.template.name} | ${skipped.template.service} | ${skipped.template.severity} | No ${skipped.template.service} resources discovered |`);
+    }
+    lines.push('');
+  }
+
+  // Feature Not Detected
+  if (featureNotDetected.length > 0) {
+    lines.push('### Feature Not Detected');
+    lines.push('');
+    lines.push('Conditional templates that require specific AWS configuration.');
+    lines.push('');
+    lines.push('| Template | Required Feature | Status |');
+    lines.push('|----------|-----------------|--------|');
+    for (const skipped of featureNotDetected) {
+      lines.push(`| ${skipped.template.name} | ${skipped.requiredFeature} | Not detected |`);
+    }
+    lines.push('');
+  }
+
+  // Tuning Required
+  if (tuningRequired.length > 0) {
+    lines.push('### Requires Baseline Tuning');
+    lines.push('');
+    lines.push('Templates requiring environment-specific thresholds (not pre-selected by design).');
+    lines.push('');
+    lines.push('| Template | Service | Reason |');
+    lines.push('|----------|---------|--------|');
+    for (const skipped of tuningRequired) {
+      lines.push(`| ${skipped.template.name} | ${skipped.template.service} | ${skipped.reasonDetail ?? 'Needs baseline'} |`);
+    }
+    lines.push('');
+  }
+
+  // User Deselected
+  if (userDeselected.length > 0) {
+    lines.push('### User Deselected');
+    lines.push('');
+    lines.push('Templates that were available but user chose not to deploy.');
+    lines.push('');
+    lines.push('| Template | Service | Severity |');
+    lines.push('|----------|---------|----------|');
+    for (const skipped of userDeselected) {
+      lines.push(`| ${skipped.template.name} | ${skipped.template.service} | ${skipped.template.severity} |`);
+    }
+    lines.push('');
+  }
+
+  // Skipped summary table
+  lines.push('### Skipped Alert Summary');
+  lines.push('');
+  lines.push('| Category | Count |');
+  lines.push('|----------|-------|');
+  if (noMatchingResources.length > 0) {
+    lines.push(`| No Matching Resources | ${noMatchingResources.length} |`);
+  }
+  if (featureNotDetected.length > 0) {
+    lines.push(`| Feature Not Detected | ${featureNotDetected.length} |`);
+  }
+  if (tuningRequired.length > 0) {
+    lines.push(`| Requires Baseline Tuning | ${tuningRequired.length} |`);
+  }
+  if (userDeselected.length > 0) {
+    lines.push(`| User Deselected | ${userDeselected.length} |`);
+  }
+  lines.push(`| **Total Skipped** | **${totalSkipped}** |`);
+  lines.push('');
+
+  return lines;
 }
