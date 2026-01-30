@@ -298,39 +298,6 @@ class GrafanaClient {
 
     console.log(\`Created rule group "\${ruleGroupName}" with \${alerts.length} alert(s)\`);
   }
-
-  async setContactPointForPolicy(contactPoint: string, folderUid: string): Promise<void> {
-    // Get current notification policy tree
-    const policy = await this.request<{ receiver: string; routes?: unknown[] }>('/v1/provisioning/policies');
-
-    // Add/update route for this folder
-    const routes = policy.routes ?? [];
-
-    const existingIndex = routes.findIndex((r: unknown) => {
-      const route = r as { object_matchers?: Array<[string, string, string]> };
-      return route.object_matchers?.some(m => m[0] === 'grafana_folder' && m[2] === folderUid);
-    });
-
-    // object_matchers format is array of tuples: [["label", "operator", "value"]]
-    const newRoute = {
-      receiver: contactPoint,
-      object_matchers: [['grafana_folder', '=', folderUid]],
-      continue: false,
-    };
-
-    if (existingIndex >= 0) {
-      routes[existingIndex] = newRoute;
-    } else {
-      routes.push(newRoute);
-    }
-
-    await this.request('/v1/provisioning/policies', {
-      method: 'PUT',
-      body: JSON.stringify({ ...policy, routes }),
-    });
-
-    console.log(\`Set contact point "\${contactPoint}" for folder \${folderUid}\`);
-  }
 }
 
 // ============================================================================
@@ -386,14 +353,6 @@ async function provisionAlerts(config: GrafanaConfig): Promise<ProvisioningResul
         });
       }
     }
-  }
-
-  // Set default contact point for folder
-  console.log('\\n📬 Setting notification policy...');
-  try {
-    await client.setContactPointForPolicy('${customer.defaultContactPoint}', folder.uid);
-  } catch (error) {
-    console.error('Warning: Failed to set contact point:', error);
   }
 
   return result;
